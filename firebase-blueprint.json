@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "Document": {
+      "title": "Document",
+      "description": "A document uploaded by the user for analysis.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The original filename of the document."
+        },
+        "type": {
+          "type": "string",
+          "description": "The MIME type of the document."
+        },
+        "content": {
+          "type": "string",
+          "description": "The base64 encoded content of the document."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who uploaded the document."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The ISO 8601 timestamp when the document was created."
+        }
+      },
+      "required": ["name", "type", "content", "userId", "createdAt"]
+    },
+    "Analysis": {
+      "title": "Analysis",
+      "description": "An AI analysis result for a specific document.",
+      "type": "object",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "The ID of the document this analysis belongs to."
+        },
+        "agentType": {
+          "type": "string",
+          "description": "The type of agent that performed the analysis."
+        },
+        "result": {
+          "type": "string",
+          "description": "The markdown result of the analysis."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this analysis."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The ISO 8601 timestamp when the analysis was created."
+        },
+        "usage": {
+          "type": "object",
+          "description": "Token usage information.",
+          "properties": {
+            "promptTokenCount": { "type": "integer" },
+            "candidatesTokenCount": { "type": "integer" },
+            "totalTokenCount": { "type": "integer" }
+          }
+        }
+      },
+      "required": ["documentId", "agentType", "result", "userId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "documents": {
+      "schema": "Document",
+      "description": "Collection of uploaded documents."
+    },
+    "analyses": {
+      "schema": "Analysis",
+      "description": "Collection of analysis results."
+    }
+  }
+}

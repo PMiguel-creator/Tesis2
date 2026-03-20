@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: documents
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, < 255 chars)
+    //   - type: string (required, < 100 chars)
+    //   - content: string (required, < 10MB)
+    //   - userId: string (required, matches auth.uid)
+    //   - createdAt: string (required, ISO 8601 format)
+    //
+    // Collection: analyses
+    // Document ID: auto-generated
+    // Fields:
+    //   - documentId: string (required)
+    //   - agentType: string (required)
+    //   - result: string (required, < 100k chars)
+    //   - userId: string (required, matches auth.uid)
+    //   - createdAt: string (required, ISO 8601 format)
+    //   - usage: map (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "jose.egana@mail.udp.cl" && request.auth.token.email_verified == true));
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidDocument(data) {
+      return hasOnlyAllowedFields(['name', 'type', 'content', 'userId', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 255 &&
+             data.type is string && data.type.size() > 0 && data.type.size() < 100 &&
+             data.content is string && data.content.size() > 0 &&
+             data.userId == request.auth.uid &&
+             isValidDateString(data.createdAt);
+    }
+
+    function isValidAnalysis(data) {
+      return data.keys().hasAll(['documentId', 'agentType', 'result', 'userId', 'createdAt']) &&
+             data.documentId is string &&
+             data.agentType is string &&
+             data.result is string && data.result.size() < 100000 &&
+             data.userId == request.auth.uid &&
+             isValidDateString(data.createdAt);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /documents/{docId} {
+      allow create: if isAuthenticated() && isValidDocument(request.resource.data);
+      allow read, delete: if isOwner(resource.data.userId);
+      allow update: if isOwner(resource.data.userId) && isValidDocument(request.resource.data);
+    }
+
+    match /analyses/{analysisId} {
+      allow create: if isAuthenticated() && isValidAnalysis(request.resource.data);
+      allow read, delete: if isOwner(resource.data.userId);
+      allow update: if isOwner(resource.data.userId) && isValidAnalysis(request.resource.data);
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}
