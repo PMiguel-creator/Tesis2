@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["http://localhost:3000", "http://localhost:5173", "https://*.web.app", "https://*.firebaseapp.com"],
+    "origin": ["http://localhost:3000", "http://localhost:5173", "https://*.web.app", "https://*.firebaseapp.com", "https://atlasops-production.up.railway.app"],
     "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
     "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent"],
     "maxAgeSeconds": 3600
