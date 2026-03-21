@@ -19,7 +19,12 @@ export async function analyzeDocument(
   agentType: AgentType,
   customPrompt?: string
 ): Promise<AnalysisResult> {
-  const model = ai.models.generateContent({
+  const TIMEOUT_MS = 120_000; // 2 minutos
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Tiempo de espera agotado. El modelo tardó demasiado en responder.')), TIMEOUT_MS)
+  );
+
+  const request = ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: [
       {
@@ -41,7 +46,7 @@ export async function analyzeDocument(
     }
   });
 
-  const response = await model;
+  const response = await Promise.race([request, timeout]);
   let text = response.text || "No response from AI.";
   const usage = response.usageMetadata ? {
     promptTokenCount: response.usageMetadata.promptTokenCount || 0,

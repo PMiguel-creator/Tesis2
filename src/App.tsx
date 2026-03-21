@@ -18,7 +18,7 @@ import {
   doc
 } from 'firebase/firestore';
 import { auth, db, storage } from './firebase';
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject, getBytes } from 'firebase/storage';
 import { analyzeDocument, AgentType } from './services/geminiService';
 import { 
   FileText, 
@@ -217,10 +217,11 @@ export default function App() {
     };
   }, [user]);
 
-  // Descarga un archivo desde una URL y lo convierte a base64 para Gemini
-  const getBase64FromUrl = async (url: string): Promise<string> => {
-    const response = await fetch(url);
-    const blob = await response.blob();
+  // Descarga un archivo desde Firebase Storage y lo convierte a base64 para Gemini
+  const getBase64FromStorage = async (storagePath: string, mimeType: string): Promise<string> => {
+    const storageRef = ref(storage, storagePath);
+    const bytes = await getBytes(storageRef, 10 * 1024 * 1024); // máx 10MB
+    const blob = new Blob([bytes], { type: mimeType });
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
@@ -362,10 +363,10 @@ export default function App() {
 
     setIsAnalyzing(true);
     try {
-      // Obtener contenido: desde Storage URL o base64 legacy
+      // Obtener contenido: desde Firebase Storage o base64 legacy
       let content = selectedDoc.content;
-      if (!content && selectedDoc.storageUrl) {
-        content = await getBase64FromUrl(selectedDoc.storageUrl);
+      if (!content && selectedDoc.storagePath) {
+        content = await getBase64FromStorage(selectedDoc.storagePath, selectedDoc.type);
       }
       if (!content) {
         setGlobalError("No se pudo obtener el contenido del documento para analizar.");
@@ -400,8 +401,9 @@ export default function App() {
           await sendAlertEmail(selectedDoc.name, analysisResult.text);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Analysis error:", error);
+      setGlobalError(`Error al analizar: ${error?.message || 'Error desconocido'}`);
     } finally {
       setIsAnalyzing(false);
     }
