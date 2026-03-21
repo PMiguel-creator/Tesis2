@@ -58,12 +58,18 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidDocument(data) {
-      return hasOnlyAllowedFields(['name', 'type', 'content', 'userId', 'createdAt']) &&
+      // Acepta documentos con contenido base64 (legacy) O con URL de Firebase Storage
+      let hasContent = data.keys().hasAll(['content']) &&
+                       data.content is string && data.content.size() > 0;
+      let hasStorageUrl = data.keys().hasAll(['storageUrl', 'storagePath']) &&
+                          data.storageUrl is string && data.storageUrl.size() > 0 &&
+                          data.storagePath is string && data.storagePath.size() > 0;
+      return data.keys().hasOnly(['name', 'type', 'content', 'storageUrl', 'storagePath', 'userId', 'createdAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 255 &&
              data.type is string && data.type.size() > 0 && data.type.size() < 100 &&
-             data.content is string && data.content.size() > 0 &&
              data.userId == request.auth.uid &&
-             isValidDateString(data.createdAt);
+             isValidDateString(data.createdAt) &&
+             (hasContent || hasStorageUrl);
     }
 
     function isValidAnalysis(data) {

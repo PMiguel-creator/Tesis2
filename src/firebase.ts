@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   projectId: process.env.VITE_FIREBASE_PROJECT_ID,
@@ -17,6 +18,7 @@ const firestoreDatabaseId = process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID;
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firestoreDatabaseId);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 // Validate Connection to Firestore
 async function testConnection() {

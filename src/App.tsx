@@ -17,7 +17,8 @@ import {
   deleteDoc,
   doc
 } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { auth, db, storage } from './firebase';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { analyzeDocument, AgentType } from './services/geminiService';
 import { 
   FileText, 
@@ -65,7 +66,9 @@ interface DocumentData {
   id: string;
   name: string;
   type: string;
-  content: string;
+  content?: string;       // legacy: base64 almacenado en Firestore
+  storageUrl?: string;    // nuevo: URL de descarga de Firebase Storage
+  storagePath?: string;   // nuevo: ruta en Firebase Storage para eliminar
   userId: string;
   createdAt: any;
 }
@@ -91,6 +94,7 @@ export default function App() {
   const [analyses, setAnalyses] = useState<AnalysisData[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<DocumentData | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeAgent, setActiveAgent] = useState<AgentType>('classify_doc');
   const [customPrompt, setCustomPrompt] = useState('');
@@ -213,6 +217,35 @@ export default function App() {
     };
   }, [user]);
 
+  // Descarga un archivo desde una URL y lo convierte a base64 para Gemini
+  const getBase64FromUrl = async (url: string): Promise<string> => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // Envía una alerta por correo cuando el análisis detecta algo relevante
+  const sendAlertEmail = async (documentName: string, analysisResult: string) => {
+    try {
+      const response = await fetch('/api/send-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentName, analysisResult, userEmail: user?.email }),
+      });
+      if (response.ok) {
+        console.log('Alerta enviada por correo para:', documentName);
+      }
+    } catch (error) {
+      // No bloquear el flujo principal si falla el correo
+      console.warn('No se pudo enviar alerta por correo:', error);
+    }
+  };
+
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
@@ -226,64 +259,68 @@ export default function App() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log("File selection event triggered");
-    if (!file) {
-      console.log("No file selected");
-      return;
-    }
+    if (!file) return;
     if (!user) {
-      console.log("No user logged in");
       setGlobalError("Debes estar ingresado para subir archivos.");
       return;
     }
 
-    console.log(`Selected file: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
-    setIsUploading(true);
-    setGlobalError(null);
-    try {
-      const reader = new FileReader();
-      
-      // Check file size (Firestore limit is 1MB per document)
-      // Base64 encoding adds ~33% overhead, so we limit to ~500KB for safety
-      if (file.size > 500 * 1024) {
-        console.log("File too large");
-        setGlobalError("El archivo es demasiado grande. Por favor intenta con uno menor a 500KB.");
-        setIsUploading(false);
-        if (e.target) e.target.value = '';
-        return;
-      }
+    const MAX_SIZE_MB = 10;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      setGlobalError(`El archivo es demasiado grande. Máximo ${MAX_SIZE_MB}MB.`);
+      if (e.target) e.target.value = '';
+      return;
+    }
 
-      reader.onload = async (event) => {
-        console.log("FileReader loaded successfully");
-        const base64 = event.target?.result as string;
-        try {
-          console.log(`Attempting to add document to Firestore for user: ${user.uid}`);
-          const docRef = await addDoc(collection(db, 'documents'), {
-            name: file.name,
-            type: file.type,
-            content: base64,
-            userId: user.uid,
-            createdAt: new Date().toISOString()
-          });
-          console.log("Document added successfully with ID:", docRef.id);
-        } catch (error: any) {
-          console.error("Firestore addDoc error details:", error);
-          setGlobalError(`Error de Firestore: ${error.code || 'sin código'} - ${error.message || 'Error desconocido'}`);
-          handleFirestoreError(error, OperationType.CREATE, 'documents');
-        } finally {
+    setIsUploading(true);
+    setUploadProgress(0);
+    setGlobalError(null);
+
+    try {
+      const storagePath = `documents/${user.uid}/${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, storagePath);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          setUploadProgress(progress);
+        },
+        (error) => {
+          console.error("Error al subir a Storage:", error);
+          setGlobalError(`Error al subir archivo: ${error.message}`);
           setIsUploading(false);
+          setUploadProgress(0);
           if (e.target) e.target.value = '';
+        },
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            const docRef = await addDoc(collection(db, 'documents'), {
+              name: file.name,
+              type: file.type,
+              storageUrl: downloadURL,
+              storagePath,
+              userId: user.uid,
+              createdAt: new Date().toISOString(),
+            });
+            console.log("Documento guardado con ID:", docRef.id);
+          } catch (error: any) {
+            console.error("Error al guardar metadatos en Firestore:", error);
+            setGlobalError(`Error al guardar documento: ${error.message}`);
+            handleFirestoreError(error, OperationType.CREATE, 'documents');
+          } finally {
+            setIsUploading(false);
+            setUploadProgress(0);
+            if (e.target) e.target.value = '';
+          }
         }
-      };
-      reader.onerror = (error) => {
-        console.error("FileReader error:", error);
-        setIsUploading(false);
-        if (e.target) e.target.value = '';
-      };
-      reader.readAsDataURL(file);
+      );
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("Error inesperado en upload:", error);
       setIsUploading(false);
+      setUploadProgress(0);
       if (e.target) e.target.value = '';
     }
   };
@@ -291,6 +328,14 @@ export default function App() {
   const handleDeleteDoc = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      const docToDelete = documents.find(d => d.id === id);
+      if (docToDelete?.storagePath) {
+        try {
+          await deleteObject(ref(storage, docToDelete.storagePath));
+        } catch (storageError) {
+          console.warn("No se pudo eliminar de Storage (puede no existir):", storageError);
+        }
+      }
       await deleteDoc(doc(db, 'documents', id));
       if (selectedDoc?.id === id) setSelectedDoc(null);
     } catch (error) {
@@ -317,8 +362,18 @@ export default function App() {
 
     setIsAnalyzing(true);
     try {
+      // Obtener contenido: desde Storage URL o base64 legacy
+      let content = selectedDoc.content;
+      if (!content && selectedDoc.storageUrl) {
+        content = await getBase64FromUrl(selectedDoc.storageUrl);
+      }
+      if (!content) {
+        setGlobalError("No se pudo obtener el contenido del documento para analizar.");
+        return;
+      }
+
       const analysisResult = await analyzeDocument(
-        selectedDoc.content,
+        content,
         selectedDoc.type,
         agent,
         agent === 'custom' ? customPrompt : undefined
@@ -335,6 +390,15 @@ export default function App() {
         });
       } catch (error) {
         handleFirestoreError(error, OperationType.CREATE, 'analyses');
+      }
+
+      // Enviar alerta si el análisis detecta un problema
+      if (agent === 'review_result') {
+        const texto = analysisResult.text.toUpperCase();
+        const necesitaAlerta = texto.includes('NO APROBADO') || texto.includes('VENCIDA');
+        if (necesitaAlerta) {
+          await sendAlertEmail(selectedDoc.name, analysisResult.text);
+        }
       }
     } catch (error) {
       console.error("Analysis error:", error);
@@ -467,7 +531,7 @@ export default function App() {
                 className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white py-3 px-4 rounded-xl font-semibold hover:bg-zinc-800 transition-all shadow-sm hover:shadow-md active:scale-[0.98] disabled:opacity-50"
               >
                 {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                Subir Documento
+                {isUploading && uploadProgress > 0 ? `Subiendo ${uploadProgress}%` : 'Subir Documento'}
               </button>
               <input 
                 type="file" 
