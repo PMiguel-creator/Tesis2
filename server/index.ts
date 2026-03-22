@@ -3,12 +3,14 @@ import 'dotenv/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import alertsRouter from './routes/alerts.js';
+import analyzeRouter from './routes/analyze.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: '20mb' })); // Documentos PDF pueden ser grandes
 app.use('/api', alertsRouter);
+app.use('/api/analyze', analyzeRouter);
 
 // En producción sirve el frontend compilado
 if (process.env.NODE_ENV === 'production') {

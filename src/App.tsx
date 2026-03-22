@@ -18,8 +18,8 @@ import {
   doc
 } from 'firebase/firestore';
 import { auth, db, storage } from './firebase';
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject, getBytes } from 'firebase/storage';
-import { analyzeDocument, AgentType } from './services/geminiService';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import type { AgentType } from './services/geminiService';
 import { 
   FileText, 
   Upload, 
@@ -217,17 +217,25 @@ export default function App() {
     };
   }, [user]);
 
-  // Descarga un archivo desde Firebase Storage y lo convierte a base64 para Gemini
-  const getBase64FromStorage = async (storagePath: string, mimeType: string): Promise<string> => {
-    const storageRef = ref(storage, storagePath);
-    const bytes = await getBytes(storageRef, 10 * 1024 * 1024); // máx 10MB
-    const blob = new Blob([bytes], { type: mimeType });
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+  // Llama al backend para analizar un documento con Gemini
+  // El servidor descarga el archivo (sin restricciones CORS) y llama a la IA
+  const analyzeViaServer = async (
+    storageUrl: string | undefined,
+    content: string | undefined,
+    mimeType: string,
+    agentType: AgentType,
+    customPrompt?: string
+  ): Promise<{ text: string; usage?: any }> => {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storageUrl, content, mimeType, agentType, customPrompt }),
     });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Error desconocido' }));
+      throw new Error(err.error || 'Error al analizar el documento');
+    }
+    return response.json();
   };
 
   // Envía una alerta por correo cuando el análisis detecta algo relevante
@@ -363,18 +371,10 @@ export default function App() {
 
     setIsAnalyzing(true);
     try {
-      // Obtener contenido: desde Firebase Storage o base64 legacy
-      let content = selectedDoc.content;
-      if (!content && selectedDoc.storagePath) {
-        content = await getBase64FromStorage(selectedDoc.storagePath, selectedDoc.type);
-      }
-      if (!content) {
-        setGlobalError("No se pudo obtener el contenido del documento para analizar.");
-        return;
-      }
-
-      const analysisResult = await analyzeDocument(
-        content,
+      // El análisis se hace en el servidor para evitar restricciones CORS con Firebase Storage
+      const analysisResult = await analyzeViaServer(
+        selectedDoc.storageUrl,
+        selectedDoc.content,
         selectedDoc.type,
         agent,
         agent === 'custom' ? customPrompt : undefined
