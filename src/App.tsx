@@ -111,6 +111,11 @@ export default function App() {
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Modal demo ────────────────────────────────────────────────────────────
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [demoTab, setDemoTab] = useState<'wa' | 'form'>('wa');
+  const [demoFormSent, setDemoFormSent] = useState(false);
+
   // ── Login form ────────────────────────────────────────────────────────────
   const [selectedRole, setSelectedRole] = useState<'contratista' | 'mandante' | ''>('');
   const [loginFormEmail, setLoginFormEmail] = useState('');
@@ -778,10 +783,13 @@ export default function App() {
                   >
                     Iniciar sesión →
                   </button>
-                  <button style={{
-                    padding: '14px 28px', background: 'rgba(255,255,255,.08)', color: '#fff',
-                    border: '1.5px solid rgba(255,255,255,.2)', borderRadius: 9, fontSize: 15, fontWeight: 600, cursor: 'pointer'
-                  }}>
+                  <button
+                    onClick={() => { setShowDemoModal(true); setDemoTab('wa'); setDemoFormSent(false); }}
+                    style={{
+                      padding: '14px 28px', background: 'rgba(255,255,255,.08)', color: '#fff',
+                      border: '1.5px solid rgba(255,255,255,.2)', borderRadius: 9, fontSize: 15, fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
                     Solicitar demo
                   </button>
                 </div>
@@ -828,6 +836,128 @@ export default function App() {
               </div>
             </div>
           </section>
+
+          {/* ── MODAL SOLICITAR DEMO ── */}
+          {showDemoModal && (
+            <div
+              onClick={(e) => { if (e.target === e.currentTarget) setShowDemoModal(false); }}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+                backdropFilter: 'blur(4px)', zIndex: 999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+              }}
+            >
+              <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 520, boxShadow: '0 24px 64px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
+                {/* Header */}
+                <div style={{ background: 'linear-gradient(135deg,#0F172A,#1E3A5F)', padding: '28px 28px 24px', position: 'relative' }}>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: '0 0 6px' }}>Solicitar una demo</h2>
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', margin: 0 }}>Elija cómo prefiere contactarnos y le mostramos AtlasOps en acción.</p>
+                  <button
+                    onClick={() => setShowDemoModal(false)}
+                    style={{
+                      position: 'absolute', top: 16, right: 18, background: 'rgba(255,255,255,0.1)',
+                      border: 'none', color: '#fff', width: 30, height: 30, borderRadius: '50%',
+                      fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                  >✕</button>
+                </div>
+
+                {/* Tabs */}
+                <div style={{ display: 'flex', borderBottom: '1px solid #E5E7EB' }}>
+                  {(['wa', 'form'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setDemoTab(tab)}
+                      style={{
+                        flex: 1, padding: '14px', fontSize: 14, fontWeight: 700, border: 'none',
+                        background: '#fff', cursor: 'pointer',
+                        color: demoTab === tab ? '#2563EB' : '#9CA3AF',
+                        borderBottom: demoTab === tab ? '3px solid #2563EB' : '3px solid transparent',
+                        transition: 'all .15s'
+                      }}
+                    >
+                      {tab === 'wa' ? '💬 WhatsApp' : '📋 Formulario'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Body */}
+                <div style={{ padding: '24px 28px 28px' }}>
+                  {/* Panel WhatsApp */}
+                  {demoTab === 'wa' && (
+                    <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                      <div style={{ fontSize: 48, marginBottom: 16 }}>💬</div>
+                      <h3 style={{ fontSize: 18, fontWeight: 800, color: '#111827', margin: '0 0 10px' }}>Contáctenos por WhatsApp</h3>
+                      <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6, margin: '0 0 24px', maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
+                        Escríbanos directamente y un ejecutivo de AtlasOps le agendará una demo personalizada a la brevedad.
+                      </p>
+                      <a
+                        href="https://wa.me/56912345678?text=Hola%2C%20me%20interesa%20conocer%20AtlasOps.%20%C2%BFPodemos%20agendar%20una%20demo%3F"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 8,
+                          padding: '12px 28px', background: '#25D366', color: '#fff',
+                          borderRadius: 9, fontSize: 15, fontWeight: 700, textDecoration: 'none',
+                          boxShadow: '0 4px 14px rgba(37,211,102,0.35)'
+                        }}
+                      >
+                        💬 Abrir WhatsApp
+                      </a>
+                      <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 16 }}>
+                        Horario de atención: Lunes a Viernes · 9:00 – 18:00 hrs (Santiago, Chile)
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Panel Formulario */}
+                  {demoTab === 'form' && (
+                    demoFormSent ? (
+                      <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                        <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+                        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#111827', margin: '0 0 8px' }}>¡Solicitud enviada!</h3>
+                        <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6 }}>Nos contactaremos con usted en menos de 24 horas hábiles para agendar la demo.</p>
+                      </div>
+                    ) : (
+                      <div>
+                        {[
+                          { label: 'Nombre completo', type: 'text', placeholder: 'Ej: María González' },
+                          { label: 'Empresa', type: 'text', placeholder: 'Ej: Codelco División Norte' },
+                          { label: 'Cargo', type: 'text', placeholder: 'Ej: Gerente de Operaciones' },
+                          { label: 'Correo electrónico', type: 'email', placeholder: 'correo@empresa.cl' },
+                        ].map(f => (
+                          <div key={f.label} style={{ marginBottom: 12 }}>
+                            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 4 }}>{f.label}</label>
+                            <input type={f.type} placeholder={f.placeholder} style={{ width: '100%', padding: '10px 13px', border: '1.5px solid #E5E7EB', borderRadius: 8, fontSize: 13.5, color: '#111827', outline: 'none', boxSizing: 'border-box' }} />
+                          </div>
+                        ))}
+                        <div style={{ marginBottom: 12 }}>
+                          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 4 }}>¿Cuántos contratistas gestiona actualmente?</label>
+                          <select style={{ width: '100%', padding: '10px 13px', border: '1.5px solid #E5E7EB', borderRadius: 8, fontSize: 13.5, color: '#111827', outline: 'none' }}>
+                            <option value="">Seleccione…</option>
+                            <option>Menos de 10</option>
+                            <option>10 – 50</option>
+                            <option>50 – 200</option>
+                            <option>Más de 200</option>
+                          </select>
+                        </div>
+                        <div style={{ marginBottom: 18 }}>
+                          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Mensaje (opcional)</label>
+                          <textarea placeholder="Cuéntenos su desafío o necesidad específica…" rows={3} style={{ width: '100%', padding: '10px 13px', border: '1.5px solid #E5E7EB', borderRadius: 8, fontSize: 13.5, color: '#111827', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                        </div>
+                        <button
+                          onClick={() => setDemoFormSent(true)}
+                          style={{ width: '100%', padding: '12px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Enviar solicitud →
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
