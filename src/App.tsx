@@ -687,14 +687,15 @@ export default function App() {
       </AnimatePresence>
 
       {/* Mobile Header */}
-      <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200 sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <Brain className="w-6 h-6 text-zinc-900" />
-          <span className="font-bold text-zinc-900 tracking-tight">AtlasOps</span>
+      <div className="lg:hidden flex items-center justify-between p-4 sticky top-0 z-50" style={{ background: '#0F172A', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center gap-2" onClick={handleLogoClick} style={{ cursor: 'default', userSelect: 'none' }}>
+          <div style={{ width: 32, height: 32, background: '#2563EB', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🗺️</div>
+          <span className="font-bold tracking-tight" style={{ color: '#fff', fontSize: 16 }}>AtlasOps</span>
         </div>
-        <button 
+        <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-lg transition-colors"
+          className="p-2 rounded-lg transition-colors"
+          style={{ color: 'rgba(255,255,255,0.6)' }}
         >
           {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -716,117 +717,151 @@ export default function App() {
       {/* Sidebar - Document List */}
       <AnimatePresence>
         {(isSidebarOpen || !isMobile) && (
-          <motion.aside 
+          <motion.aside
             initial={isMobile ? { x: -320 } : false}
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`fixed inset-y-0 left-0 z-40 w-80 border-r border-zinc-200 bg-white flex flex-col lg:relative lg:translate-x-0 ${isSidebarOpen ? 'shadow-2xl' : ''}`}
+            className={`fixed inset-y-0 left-0 z-40 w-[230px] flex flex-col lg:relative lg:translate-x-0 ${isSidebarOpen ? 'shadow-2xl' : ''}`}
+            style={{ background: '#0F172A', borderRight: '1px solid rgba(255,255,255,0.07)' }}
           >
-            <div className="p-6 border-b border-zinc-100 hidden lg:flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
-                  <Brain className="w-5 h-5 text-white" />
+            {/* Logo */}
+            <div
+              className="hidden lg:flex items-center justify-between"
+              style={{ padding: '22px 20px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', cursor: 'default', userSelect: 'none' }}
+              onClick={handleLogoClick}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, background: '#2563EB', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🗺️</div>
+                <div>
+                  <span style={{ color: '#fff', fontWeight: 700, fontSize: 17 }}>AtlasOps</span>
+                  <small style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, display: 'block' }}>Gestión Laboral IA</small>
                 </div>
-                <span className="font-bold text-zinc-900 tracking-tight">AtlasOps</span>
               </div>
-              <button onClick={handleLogout} className="text-zinc-400 hover:text-zinc-600 transition-colors p-1.5 hover:bg-zinc-50 rounded-lg">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleLogout(); }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', padding: 4, borderRadius: 6 }}
+                title="Cerrar sesión"
+              >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4">
-              <button 
+            {/* Upload */}
+            <div style={{ padding: '14px 12px 10px' }}>
+              <button
                 onClick={() => {
                   fileInputRef.current?.click();
                   if (window.innerWidth < 1024) setIsSidebarOpen(false);
                 }}
                 disabled={isUploading}
-                className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white py-3 px-4 rounded-xl font-semibold hover:bg-zinc-800 transition-all shadow-sm hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8,
+                  padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  opacity: isUploading ? 0.6 : 1, transition: 'background .15s'
+                }}
               >
                 {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 {isUploading && uploadProgress > 0 ? `Subiendo ${uploadProgress}%` : 'Subir Documento'}
               </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
                 accept=".pdf,.txt,.doc,.docx,image/*"
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-1 no-scrollbar">
-              <div className="px-3 mb-2">
-                <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Documentos Recientes</h3>
-              </div>
+            {/* Doc list */}
+            <div className="flex-1 overflow-y-auto no-scrollbar" style={{ padding: '0 8px' }}>
+              <p style={{ padding: '12px 12px 6px', color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                Documentos Recientes
+              </p>
               {documents.length === 0 ? (
-                <div className="text-center py-12 px-4">
-                  <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <FileText className="w-6 h-6 text-zinc-200" />
+                <div style={{ textAlign: 'center', padding: '40px 16px' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                    <FileText className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.2)' }} />
                   </div>
-                  <p className="text-xs text-zinc-400 font-medium">No hay documentos aún</p>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>No hay documentos aún</p>
                 </div>
               ) : (
-                documents.map((doc) => (
+                documents.map((document) => (
                   <button
-                    key={doc.id}
+                    key={document.id}
                     onClick={() => {
-                      setSelectedDoc(doc);
+                      setSelectedDoc(document);
                       if (window.innerWidth < 1024) setIsSidebarOpen(false);
                     }}
-                    className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all group relative ${
-                      selectedDoc?.id === doc.id 
-                        ? 'bg-zinc-100 text-zinc-900 ring-1 ring-zinc-200' 
-                        : 'hover:bg-zinc-50 text-zinc-500'
-                    }`}
+                    style={{
+                      width: '100%', textAlign: 'left', padding: '9px 12px', borderRadius: 7,
+                      display: 'flex', alignItems: 'center', gap: 10, border: 'none', cursor: 'pointer',
+                      background: selectedDoc?.id === document.id ? '#2563EB' : 'transparent',
+                      transition: 'background .15s', marginBottom: 2
+                    }}
+                    onMouseEnter={e => { if (selectedDoc?.id !== document.id) (e.currentTarget as HTMLButtonElement).style.background = '#1E293B'; }}
+                    onMouseLeave={e => { if (selectedDoc?.id !== document.id) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                    className="group"
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      selectedDoc?.id === doc.id ? 'bg-white shadow-sm' : 'bg-zinc-50'
-                    }`}>
-                      <FileText className={`w-4 h-4 ${selectedDoc?.id === doc.id ? 'text-zinc-900' : 'text-zinc-400'}`} />
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 7, flexShrink: 0,
+                      background: selectedDoc?.id === document.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.07)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <FileText className="w-4 h-4" style={{ color: selectedDoc?.id === document.id ? '#fff' : 'rgba(255,255,255,0.45)' }} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{doc.name}</p>
-                      <p className="text-[10px] text-zinc-400 truncate uppercase tracking-tighter">{doc.type.split('/')[1] || 'DOC'}</p>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: selectedDoc?.id === document.id ? '#fff' : 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {document.name}
+                      </p>
+                      <p style={{ fontSize: 10, color: selectedDoc?.id === document.id ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        {document.type.split('/')[1] || 'DOC'}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Trash2 
-                        onClick={(e) => handleDeleteDoc(doc.id, e)}
-                        className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500 text-zinc-400" 
-                      />
-                      <ChevronRight className={`w-4 h-4 transition-transform ${selectedDoc?.id === doc.id ? 'rotate-90 opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
-                    </div>
+                    <Trash2
+                      onClick={(e) => handleDeleteDoc(document.id, e)}
+                      className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ color: 'rgba(255,100,100,0.8)', flexShrink: 0 }}
+                    />
                   </button>
                 ))
               )}
             </div>
 
-            <div className="p-4 border-t border-zinc-100 bg-zinc-50/50">
-              <div className="mb-4 p-2 bg-zinc-100 rounded-lg text-[10px] font-mono text-zinc-500 break-all">
-                <p>UID: {user.uid}</p>
-                <p>Docs: {documents.length}</p>
-                <p>Analyses: {analyses.length}</p>
-                <p>DB: {db.app.options.projectId}</p>
-                <button 
+            {/* Footer — user + debug */}
+            <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ marginBottom: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 7, fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+                <p>UID: {user.uid.slice(0, 12)}…</p>
+                <p>Docs: {documents.length} · Análisis: {analyses.length}</p>
+                <button
                   onClick={testConnection}
                   disabled={isTestingConnection}
-                  className="mt-2 w-full py-1 px-2 bg-zinc-200 hover:bg-zinc-300 rounded text-[9px] font-bold transition-colors disabled:opacity-50"
+                  style={{ marginTop: 6, width: '100%', padding: '4px 8px', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 5, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}
                 >
-                  {isTestingConnection ? 'Probando...' : 'Probar Conexión'}
+                  {isTestingConnection ? 'Probando…' : 'Probar Conexión'}
                 </button>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <img src={user.photoURL || ''} alt={user.displayName || ''} className="w-10 h-10 rounded-xl bg-zinc-200 object-cover border-2 border-white shadow-sm" referrerPolicy="no-referrer" />
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <img
+                    src={user.photoURL || ''}
+                    alt={user.displayName || ''}
+                    style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }}
+                    referrerPolicy="no-referrer"
+                  />
+                  <div style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, background: '#10B981', borderRadius: '50%', border: '2px solid #0F172A' }} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-zinc-900 truncate">{user.displayName}</p>
-                  <p className="text-[10px] text-zinc-400 truncate font-medium">{user.email}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.displayName}</p>
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</p>
                 </div>
-                <button onClick={handleLogout} className="lg:hidden text-zinc-400 hover:text-zinc-600">
-                  <LogOut className="w-5 h-5" />
+                <button
+                  onClick={handleLogout}
+                  className="lg:hidden"
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }}
+                >
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -839,10 +874,10 @@ export default function App() {
         {selectedDoc ? (
           <>
             {/* Header / Agent Selector */}
-            <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200 p-4 lg:p-6 sticky top-0 z-30">
+            <header className="bg-white border-b border-zinc-200 p-4 lg:p-6 sticky top-0 z-30">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-zinc-200">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#2563EB' }}>
                     <FileText className="w-6 h-6 text-white" />
                   </div>
                   <div className="min-w-0">
@@ -856,28 +891,31 @@ export default function App() {
                 </div>
                 
                 <div className="flex items-center gap-2 lg:gap-3">
-                  <button 
+                  <button
                     onClick={handleReset}
-                    className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-zinc-100 text-zinc-600 py-2.5 px-5 rounded-xl font-bold text-sm hover:bg-zinc-200 transition-all active:scale-95"
+                    className="flex-1 lg:flex-none flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg font-bold text-sm transition-all active:scale-95"
+                    style={{ background: '#F3F4F6', color: '#4B5563', border: '1px solid #E5E7EB' }}
                   >
                     <RotateCcw className="w-4 h-4" />
                     <span className="hidden sm:inline">Reiniciar</span>
                   </button>
 
                   {activeAgent === 'classify_doc' ? (
-                    <button 
+                    <button
                       onClick={() => handleAnalyze('classify_doc')}
                       disabled={isAnalyzing}
-                      className="flex-[2] lg:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white py-2.5 px-6 rounded-xl font-bold text-sm hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50"
+                      className="flex-[2] lg:flex-none flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
+                      style={{ background: '#2563EB', color: '#fff', border: 'none', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}
                     >
                       {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                       1. Identificar
                     </button>
                   ) : (
-                    <button 
+                    <button
                       onClick={() => handleAnalyze()}
                       disabled={isAnalyzing || !canExtract}
-                      className="flex-[2] lg:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white py-2.5 px-6 rounded-xl font-bold text-sm hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50"
+                      className="flex-[2] lg:flex-none flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
+                      style={{ background: '#2563EB', color: '#fff', border: 'none', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}
                     >
                       {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
                       2. Analizar
@@ -892,11 +930,11 @@ export default function App() {
                     key={type}
                     onClick={() => setActiveAgent(type)}
                     disabled={type !== 'classify_doc' && !canExtract}
-                    className={`whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
-                      activeAgent === type 
-                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-md' 
-                        : 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-300 hover:text-zinc-600'
-                    } disabled:opacity-30 disabled:cursor-not-allowed`}
+                    className="whitespace-nowrap px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    style={activeAgent === type
+                      ? { background: '#2563EB', color: '#fff', border: '1px solid #2563EB' }
+                      : { background: '#fff', color: '#6B7280', border: '1px solid #E5E7EB' }
+                    }
                   >
                     {type === 'classify_doc' && '1. Identificación'}
                     {type === 'review_result' && '2. Revisión'}
@@ -984,66 +1022,64 @@ export default function App() {
                     animate={{ opacity: 1 }}
                     className="flex flex-col items-center justify-center h-full text-zinc-300 py-20"
                   >
-                    <div className="w-24 h-24 bg-white rounded-[2rem] shadow-sm border border-zinc-100 flex items-center justify-center mb-6">
-                      <Brain className="w-10 h-10 text-zinc-100" />
+                    <div style={{ width: 72, height: 72, background: '#EFF6FF', borderRadius: 16, border: '1px solid #BFDBFE', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, fontSize: 30 }}>
+                      🤖
                     </div>
-                    <h3 className="text-lg font-bold text-zinc-900 mb-1">Listo para Analizar</h3>
-                    <p className="text-sm font-medium text-zinc-400 text-center max-w-xs">Selecciona un agente en la parte superior y haz clic en el botón de acción para comenzar.</p>
+                    <h3 className="text-lg font-bold mb-1" style={{ color: '#111827' }}>Listo para Analizar</h3>
+                    <p className="text-sm text-center max-w-xs" style={{ color: '#9CA3AF' }}>Selecciona un agente arriba y haz clic en el botón para comenzar el análisis.</p>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12">
-            <motion.div 
+          <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12" style={{ background: '#F9FAFB' }}>
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="max-w-2xl w-full text-center"
             >
-              <div className="relative inline-block mb-10">
-                <div className="absolute inset-0 bg-zinc-900/5 blur-3xl rounded-full"></div>
-                <div className="relative w-24 h-24 bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center border border-zinc-100">
-                  <Brain className="w-12 h-12 text-zinc-900" />
-                </div>
-              </div>
-              
-              <h1 className="text-2xl lg:text-4xl font-bold text-zinc-900 mb-4 tracking-tight leading-tight">
-                AtlasOps la Plataforma de Gestión y <br className="hidden lg:block" /> Control de Documentos Laborales
-              </h1>
-              <p className="text-base lg:text-lg text-zinc-500 mb-12 max-w-lg mx-auto leading-relaxed">
-                AtlasOps utiliza agentes de IA avanzados para clasificar, extraer y validar información crítica de tus documentos en segundos.
-              </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                <div className="p-6 rounded-[2rem] bg-white border border-zinc-100 shadow-xl shadow-zinc-200/20 group hover:border-zinc-900 transition-all duration-500">
-                  <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-zinc-900 transition-colors">
-                    <CheckCircle2 className="w-6 h-6 text-zinc-900 group-hover:text-white" />
-                  </div>
-                  <h3 className="text-sm font-bold text-zinc-900 mb-2 uppercase tracking-wider">Clasificación Automática</h3>
-                  <p className="text-xs text-zinc-500 leading-relaxed">Identifica instantáneamente el tipo de documento y su relevancia para el cumplimiento laboral.</p>
-                </div>
-                <div className="p-6 rounded-[2rem] bg-white border border-zinc-100 shadow-xl shadow-zinc-200/20 group hover:border-zinc-900 transition-all duration-500">
-                  <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-zinc-900 transition-colors">
-                    <Brain className="w-6 h-6 text-zinc-900 group-hover:text-white" />
-                  </div>
-                  <h3 className="text-sm font-bold text-zinc-900 mb-2 uppercase tracking-wider">Extracción de Datos</h3>
-                  <p className="text-xs text-zinc-500 leading-relaxed">Extrae fechas, nombres, RUTs y montos automáticamente con alta precisión.</p>
+              {/* Logo central */}
+              <div className="relative inline-block mb-8">
+                <div style={{ width: 80, height: 80, background: '#EFF6FF', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', border: '1px solid #BFDBFE' }}>
+                  <span style={{ fontSize: 36 }}>🗺️</span>
                 </div>
               </div>
 
-              <div className="mt-12 pt-12 border-t border-zinc-100 flex flex-col items-center gap-4">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Comienza ahora</p>
-                <button 
+              <h1 className="text-2xl lg:text-3xl font-bold mb-3 tracking-tight leading-tight" style={{ color: '#111827' }}>
+                Bienvenido a <span style={{ color: '#2563EB' }}>AtlasOps</span>
+              </h1>
+              <p className="text-base mb-10 max-w-lg mx-auto leading-relaxed" style={{ color: '#6B7280' }}>
+                Sube un documento laboral y utiliza los agentes de IA para clasificarlo, revisar su vigencia y extraer datos relevantes.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-10">
+                {[
+                  { icon: '🔍', title: 'Clasificación Automática', desc: 'Identifica el tipo de documento y su relevancia para el cumplimiento de la Ley 20.123.', color: '#EFF6FF', border: '#BFDBFE', iconBg: '#2563EB' },
+                  { icon: '✅', title: 'Revisión de Vigencia', desc: 'Detecta documentos vencidos, observaciones y estado de aprobación en tiempo real.', color: '#F0FDF4', border: '#BBF7D0', iconBg: '#16A34A' },
+                  { icon: '📋', title: 'Extracción de Datos', desc: 'Extrae RUTs, fechas, montos y nombres con alta precisión desde PDFs e imágenes.', color: '#FFFBEB', border: '#FDE68A', iconBg: '#D97706' },
+                  { icon: '🤖', title: 'Consultas Personalizadas', desc: 'Formula cualquier pregunta sobre el documento y el agente IA responde en segundos.', color: '#F5F3FF', border: '#DDD6FE', iconBg: '#7C3AED' },
+                ].map(card => (
+                  <div key={card.title} style={{ padding: '20px 22px', borderRadius: 10, background: card.color, border: `1px solid ${card.border}` }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 8, background: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginBottom: 12 }}>{card.icon}</div>
+                    <h3 style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.title}</h3>
+                    <p style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6 }}>{card.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col items-center gap-3">
+                <button
                   onClick={() => setIsSidebarOpen(true)}
-                  className="lg:hidden flex items-center gap-2 bg-zinc-900 text-white py-3 px-8 rounded-2xl font-bold text-sm shadow-xl shadow-zinc-900/20 active:scale-95"
+                  className="lg:hidden flex items-center gap-2 py-3 px-8 rounded-lg font-bold text-sm active:scale-95 transition-all"
+                  style={{ background: '#2563EB', color: '#fff', border: 'none', boxShadow: '0 2px 10px rgba(37,99,235,0.3)' }}
                 >
                   <Upload className="w-4 h-4" />
                   Subir primer documento
                 </button>
-                <div className="hidden lg:flex items-center gap-2 text-zinc-400">
+                <div className="hidden lg:flex items-center gap-2" style={{ color: '#9CA3AF' }}>
                   <ChevronRight className="w-4 h-4 animate-bounce rotate-90" />
-                  <span className="text-xs font-medium">Selecciona un documento en la barra lateral</span>
+                  <span style={{ fontSize: 12, fontWeight: 500 }}>Sube un documento en el panel lateral para comenzar</span>
                 </div>
               </div>
             </motion.div>
