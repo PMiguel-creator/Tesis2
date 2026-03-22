@@ -21,6 +21,7 @@ import { auth, db, storage } from './firebase';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import type { AgentType } from './services/geminiService';
 import {
+  Brain,
   FileText,
   Upload,
   Trash2,
@@ -416,12 +417,11 @@ export default function App() {
 
   // Triple-clic en logo → futuro acceso admin (Phase 3)
   const handleLogoClick = () => {
+    if (logoClickTimer.current) clearTimeout(logoClickTimer.current);
     setLogoClickCount(prev => {
       const next = prev + 1;
-      if (logoClickTimer.current) clearTimeout(logoClickTimer.current);
       if (next >= 3) {
         // Placeholder Phase 3: aquí irá la pantalla admin
-        setLogoClickCount(0);
         return 0;
       }
       logoClickTimer.current = setTimeout(() => setLogoClickCount(0), 600);
