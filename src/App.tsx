@@ -1322,24 +1322,34 @@ export default function App() {
             <div>
               {/* Step indicator */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 20 }}>
-                {[
-                  { n: '✓', label: 'Registro', done: true, active: false },
-                  { n: '2', label: 'Documentos', done: false, active: true },
-                  { n: '3', label: 'Análisis IA', done: false, active: false },
-                  { n: '4', label: 'Aprobación', done: false, active: false },
-                ].map((step, i) => (
-                  <React.Fragment key={step.label}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
-                        background: step.done ? '#16A34A' : step.active ? '#2563EB' : '#E5E7EB',
-                        color: (step.done || step.active) ? '#fff' : '#9CA3AF',
-                      }}>{step.n}</div>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: step.active ? '#2563EB' : step.done ? '#16A34A' : '#9CA3AF', whiteSpace: 'nowrap' }}>{step.label}</span>
-                    </div>
-                    {i < 3 && <div style={{ flex: 1, height: 2, background: step.done ? '#16A34A' : '#E5E7EB', margin: '0 6px', marginBottom: 20 }} />}
-                  </React.Fragment>
-                ))}
+                {(() => {
+                  const hasDocuments = documents.length > 0;
+                  const hasAnalyses = analyses.length > 0;
+                  const allStatuses = documents.map(d => getDocStatus(d));
+                  const allApproved = hasDocuments && allStatuses.every(s => s === 'approved');
+                  const anyRejected = allStatuses.some(s => s === 'rejected');
+                  const step1Bg = hasDocuments ? '#2563EB' : '#E5E7EB';
+                  const step2Bg = hasAnalyses ? '#2563EB' : '#E5E7EB';
+                  const step3Bg = allApproved ? '#16A34A' : anyRejected ? '#DC2626' : '#E5E7EB';
+                  const steps = [
+                    { n: '1', label: 'Documentos', bg: step1Bg, line: hasDocuments ? '#2563EB' : '#E5E7EB' },
+                    { n: '2', label: 'Análisis IA', bg: step2Bg, line: hasAnalyses ? '#2563EB' : '#E5E7EB' },
+                    { n: '3', label: 'Aprobación', bg: step3Bg, line: '#E5E7EB' },
+                  ];
+                  return steps.map((step, i) => (
+                    <React.Fragment key={step.label}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
+                          background: step.bg,
+                          color: step.bg !== '#E5E7EB' ? '#fff' : '#9CA3AF',
+                        }}>{step.n}</div>
+                        <span style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', color: step.bg === '#DC2626' ? '#DC2626' : step.bg === '#16A34A' ? '#16A34A' : step.bg === '#2563EB' ? '#2563EB' : '#9CA3AF' }}>{step.label}</span>
+                      </div>
+                      {i < 2 && <div style={{ flex: 1, height: 2, background: step.line, margin: '0 6px', marginBottom: 20 }} />}
+                    </React.Fragment>
+                  ));
+                })()}
               </div>
 
               {/* Info banner */}
