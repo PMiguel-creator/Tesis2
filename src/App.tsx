@@ -1593,7 +1593,7 @@ export default function App() {
                             </td>
                             <td style={{ padding: '12px 16px' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
-                                <button onClick={() => { setSelectedDoc(doc); setActiveView('upload'); }} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ver</button>
+                                <button onClick={() => { if (doc.storageUrl) { window.open(doc.storageUrl, '_blank', 'noopener,noreferrer'); } else { setSelectedDoc(doc); setActiveView('upload'); } }} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ver</button>
                                 {status === 'rejected' && (
                                   <button onClick={() => { setActiveView('upload'); fileInputRef.current?.click(); }} style={{ padding: '4px 10px', background: '#2563EB', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>Resubir</button>
                                 )}
