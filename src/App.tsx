@@ -121,6 +121,21 @@ export default function App() {
   const [loginFormEmail, setLoginFormEmail] = useState('');
   const [loginFormError, setLoginFormError] = useState('');
 
+  // ── App shell views ───────────────────────────────────────────────────────
+  // userRole se persiste en localStorage para sobrevivir refreshes de página
+  const [userRole, setUserRole] = useState<string>(() => {
+    try { return localStorage.getItem('atlasops_role') || ''; } catch { return ''; }
+  });
+  const [activeView, setActiveView] = useState<'upload' | 'docs' | 'alerts' | 'revision' | 'contractors'>('upload');
+
+  // Guarda el rol cuando el usuario inicia sesión con un perfil seleccionado
+  React.useEffect(() => {
+    if (user && selectedRole) {
+      setUserRole(selectedRole);
+      try { localStorage.setItem('atlasops_role', selectedRole); } catch {}
+    }
+  }, [user, selectedRole]);
+
   // ── Admin ─────────────────────────────────────────────────────────────────
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -1130,436 +1145,543 @@ export default function App() {
     );
   }
 
+  // Helper: estado visual de un documento según sus análisis
+  const getDocStatus = (doc: DocumentData): 'approved' | 'rejected' | 'reviewing' | 'pending' => {
+    const docAnalyses = analyses.filter(a => a.documentId === doc.id);
+    const reviewAnalysis = docAnalyses.find(a => a.agentType === 'review_result');
+    if (reviewAnalysis) {
+      const upper = reviewAnalysis.result.toUpperCase();
+      if ((upper.includes('APROBADO') && !upper.includes('NO APROBADO')) || upper.includes('VIGENTE')) return 'approved';
+      if (upper.includes('NO APROBADO') || upper.includes('RECHAZADO') || upper.includes('VENCIDO') || upper.includes('VENCE')) return 'rejected';
+      return 'reviewing';
+    }
+    if (docAnalyses.find(a => a.agentType === 'classify_doc')) return 'reviewing';
+    return 'pending';
+  };
+
+  const statusConfig = {
+    approved:  { label: 'Aprobado',    bg: '#F0FDF4', border: '#BBF7D0', color: '#16A34A', icon: '✅' },
+    rejected:  { label: 'Rechazado',   bg: '#FEF2F2', border: '#FECACA', color: '#DC2626', icon: '❌' },
+    reviewing: { label: 'En revisión', bg: '#EFF6FF', border: '#BFDBFE', color: '#2563EB', icon: '⏳' },
+    pending:   { label: 'Pendiente',   bg: '#FFFBEB', border: '#FDE68A', color: '#D97706', icon: '🔲' },
+  };
+
+  const activeRole = selectedRole || userRole;
+
+  const viewTitles: Record<string, string> = {
+    upload: 'Subir Documentos',
+    docs: 'Mis Documentos',
+    alerts: 'Alertas',
+    revision: 'Revisión de Documentos',
+    contractors: 'Mis Contratistas',
+  };
+
+  const navItems = activeRole === 'mandante'
+    ? [
+        { id: 'revision', icon: '🔍', label: 'Revisión Docs' },
+        { id: 'contractors', icon: '👷', label: 'Mis Contratistas' },
+      ]
+    : [
+        { id: 'upload', icon: '📤', label: 'Subir Documentos' },
+        { id: 'docs', icon: '📁', label: 'Mis Documentos' },
+        { id: 'alerts', icon: '🔔', label: 'Alertas' },
+      ];
+
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col lg:flex-row overflow-hidden">
-      {/* Error Banner */}
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      {/* ── Error Banner ── */}
       <AnimatePresence>
         {globalError && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="fixed top-0 left-0 right-0 z-[100] bg-red-500 text-white p-4 text-center text-sm font-bold flex flex-col sm:flex-row items-center justify-center gap-4"
+          <motion.div
+            initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: '#EF4444', color: '#fff', padding: '12px 20px', textAlign: 'center', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}
           >
-            <div className="flex items-center gap-2">
-              <X className="w-5 h-5 shrink-0" />
-              <span>{globalError}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => window.location.reload()} 
-                className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs transition-colors"
-              >
-                Recargar App
-              </button>
-              <button onClick={() => setGlobalError(null)} className="p-1 hover:bg-white/20 rounded">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            <span>⚠️ {globalError}</span>
+            <button onClick={() => window.location.reload()} style={{ padding: '4px 12px', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 5, color: '#fff', fontSize: 12, cursor: 'pointer' }}>Recargar</button>
+            <button onClick={() => setGlobalError(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16 }}>✕</button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Mobile Header */}
-      <div className="lg:hidden flex items-center justify-between p-4 sticky top-0 z-50" style={{ background: '#0F172A', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <div className="flex items-center gap-2" onClick={handleLogoClick} style={{ cursor: 'default', userSelect: 'none' }}>
-          <div style={{ width: 32, height: 32, background: '#2563EB', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🗺️</div>
-          <span className="font-bold tracking-tight" style={{ color: '#fff', fontSize: 16 }}>AtlasOps</span>
+      {/* ── Mobile Header ── */}
+      <div className="lg:hidden" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 56, zIndex: 50, background: '#0F172A', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={handleLogoClick}>
+          <div style={{ width: 30, height: 30, background: '#2563EB', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>🗺️</div>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>AtlasOps</span>
         </div>
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 rounded-lg transition-colors"
-          style={{ color: 'rgba(255,255,255,0.6)' }}
-        >
+        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
           {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
-      {/* Mobile Overlay */}
+      {/* ── Mobile Overlay ── */}
       <AnimatePresence>
         {isSidebarOpen && isMobile && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-zinc-900/20 backdrop-blur-sm z-30 lg:hidden"
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 30 }}
+            className="lg:hidden"
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar - Document List */}
+      {/* ── Sidebar ── */}
       <AnimatePresence>
         {(isSidebarOpen || !isMobile) && (
-          <motion.aside
-            initial={isMobile ? { x: -320 } : false}
-            animate={{ x: 0 }}
-            exit={{ x: -320 }}
+          <motion.nav
+            initial={isMobile ? { x: -230 } : false}
+            animate={{ x: 0 }} exit={{ x: -230 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`fixed inset-y-0 left-0 z-40 w-[230px] flex flex-col lg:relative lg:translate-x-0 ${isSidebarOpen ? 'shadow-2xl' : ''}`}
-            style={{ background: '#0F172A', borderRight: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ width: 230, minWidth: 230, background: '#0F172A', display: 'flex', flexDirection: 'column', position: isMobile ? 'fixed' : 'sticky', top: 0, height: '100vh', overflowY: 'auto', zIndex: isMobile ? 40 : 'auto', boxShadow: isSidebarOpen && isMobile ? '4px 0 20px rgba(0,0,0,0.3)' : 'none' }}
           >
             {/* Logo */}
-            <div
-              className="hidden lg:flex items-center justify-between"
-              style={{ padding: '22px 20px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', cursor: 'default', userSelect: 'none' }}
-              onClick={handleLogoClick}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, background: '#2563EB', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🗺️</div>
-                <div>
-                  <span style={{ color: '#fff', fontWeight: 700, fontSize: 17 }}>AtlasOps</span>
-                  <small style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, display: 'block' }}>Gestión Laboral IA</small>
+            <div style={{ padding: '22px 20px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.07)', cursor: 'default', userSelect: 'none' }} onClick={handleLogoClick}>
+              <div style={{ width: 36, height: 36, background: '#2563EB', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🗺️</div>
+              <div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 17 }}>AtlasOps</div>
+                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>
+                  {activeRole === 'contratista' ? 'Portal Contratista' : activeRole === 'mandante' ? 'Portal Mandante' : 'Gestión Laboral IA'}
                 </div>
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleLogout(); }}
-                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', padding: 4, borderRadius: 6 }}
-                title="Cerrar sesión"
-              >
+            </div>
+
+            {/* Nav */}
+            <div style={{ padding: '16px 8px 8px' }}>
+              <div style={{ padding: '0 12px 6px', color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                {activeRole === 'mandante' ? 'Mi Empresa' : 'Mi Portal'}
+              </div>
+              {navItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => { setActiveView(item.id as any); if (isMobile) setIsSidebarOpen(false); }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+                    borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600,
+                    marginBottom: 2, transition: 'all .15s',
+                    background: activeView === item.id ? '#2563EB' : 'transparent',
+                    color: activeView === item.id ? '#fff' : 'rgba(255,255,255,0.65)',
+                  }}
+                  onMouseEnter={e => { if (activeView !== item.id) (e.currentTarget as HTMLButtonElement).style.background = '#1E293B'; }}
+                  onMouseLeave={e => { if (activeView !== item.id) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                >
+                  <span style={{ fontSize: 16, width: 20, textAlign: 'center' }}>{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* File input hidden */}
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.txt,.doc,.docx,image/*" />
+
+            {/* User footer */}
+            <div style={{ marginTop: 'auto', padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <img src={user.photoURL || ''} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }} referrerPolicy="no-referrer" />
+                <div style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, background: '#10B981', borderRadius: '50%', border: '2px solid #0F172A' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.displayName}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
+              </div>
+              <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }} title="Cerrar sesión">
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
-
-            {/* Upload */}
-            <div style={{ padding: '14px 12px 10px' }}>
-              <button
-                onClick={() => {
-                  fileInputRef.current?.click();
-                  if (window.innerWidth < 1024) setIsSidebarOpen(false);
-                }}
-                disabled={isUploading}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8,
-                  padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                  opacity: isUploading ? 0.6 : 1, transition: 'background .15s'
-                }}
-              >
-                {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                {isUploading && uploadProgress > 0 ? `Subiendo ${uploadProgress}%` : 'Subir Documento'}
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-                accept=".pdf,.txt,.doc,.docx,image/*"
-              />
-            </div>
-
-            {/* Doc list */}
-            <div className="flex-1 overflow-y-auto no-scrollbar" style={{ padding: '0 8px' }}>
-              <p style={{ padding: '12px 12px 6px', color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-                Documentos Recientes
-              </p>
-              {documents.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 16px' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
-                    <FileText className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.2)' }} />
-                  </div>
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>No hay documentos aún</p>
-                </div>
-              ) : (
-                documents.map((document) => (
-                  <button
-                    key={document.id}
-                    onClick={() => {
-                      setSelectedDoc(document);
-                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
-                    }}
-                    style={{
-                      width: '100%', textAlign: 'left', padding: '9px 12px', borderRadius: 7,
-                      display: 'flex', alignItems: 'center', gap: 10, border: 'none', cursor: 'pointer',
-                      background: selectedDoc?.id === document.id ? '#2563EB' : 'transparent',
-                      transition: 'background .15s', marginBottom: 2
-                    }}
-                    onMouseEnter={e => { if (selectedDoc?.id !== document.id) (e.currentTarget as HTMLButtonElement).style.background = '#1E293B'; }}
-                    onMouseLeave={e => { if (selectedDoc?.id !== document.id) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-                    className="group"
-                  >
-                    <div style={{
-                      width: 30, height: 30, borderRadius: 7, flexShrink: 0,
-                      background: selectedDoc?.id === document.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.07)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <FileText className="w-4 h-4" style={{ color: selectedDoc?.id === document.id ? '#fff' : 'rgba(255,255,255,0.45)' }} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: selectedDoc?.id === document.id ? '#fff' : 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {document.name}
-                      </p>
-                      <p style={{ fontSize: 10, color: selectedDoc?.id === document.id ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        {document.type.split('/')[1] || 'DOC'}
-                      </p>
-                    </div>
-                    <Trash2
-                      onClick={(e) => handleDeleteDoc(document.id, e)}
-                      className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ color: 'rgba(255,100,100,0.8)', flexShrink: 0 }}
-                    />
-                  </button>
-                ))
-              )}
-            </div>
-
-            {/* Footer — user + debug */}
-            <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-              <div style={{ marginBottom: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 7, fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
-                <p>UID: {user.uid.slice(0, 12)}…</p>
-                <p>Docs: {documents.length} · Análisis: {analyses.length}</p>
-                <button
-                  onClick={testConnection}
-                  disabled={isTestingConnection}
-                  style={{ marginTop: 6, width: '100%', padding: '4px 8px', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 5, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}
-                >
-                  {isTestingConnection ? 'Probando…' : 'Probar Conexión'}
-                </button>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <img
-                    src={user.photoURL || ''}
-                    alt={user.displayName || ''}
-                    style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }}
-                    referrerPolicy="no-referrer"
-                  />
-                  <div style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, background: '#10B981', borderRadius: '50%', border: '2px solid #0F172A' }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.displayName}</p>
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</p>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="lg:hidden"
-                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }}
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </motion.aside>
+          </motion.nav>
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        {selectedDoc ? (
-          <>
-            {/* Header / Agent Selector */}
-            <header className="bg-white border-b border-zinc-200 p-4 lg:p-6 sticky top-0 z-30">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#2563EB' }}>
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className="text-xl font-bold text-zinc-900 truncate leading-tight">{selectedDoc.name}</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-100 px-2 py-0.5 rounded-md">{selectedDoc.type.split('/')[1] || 'document'}</span>
-                      <span className="text-[10px] text-zinc-300">•</span>
-                      <span className="text-[10px] text-zinc-400 font-medium">Subido el {new Date(selectedDoc.createdAt).toLocaleDateString()}</span>
+      {/* ── Main ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: isMobile ? 56 : 0 }}>
+        {/* Topbar */}
+        <div style={{ height: 58, background: '#fff', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', position: 'sticky', top: isMobile ? 56 : 0, zIndex: 10, flexShrink: 0 }}>
+          <h1 style={{ fontSize: 17, fontWeight: 700, color: '#1F2937', margin: 0 }}>{viewTitles[activeView] || 'Panel'}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {activeRole && (
+              <span style={{
+                padding: '4px 10px', borderRadius: 20, fontSize: 11.5, fontWeight: 600,
+                background: activeRole === 'mandante' ? '#FFFBEB' : '#EFF6FF',
+                color: activeRole === 'mandante' ? '#D97706' : '#2563EB',
+              }}>
+                {activeRole === 'mandante' ? 'Mandante' : 'Contratista'}
+              </span>
+            )}
+            <div style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, cursor: 'pointer', position: 'relative' }}>
+              🔔
+              <div style={{ position: 'absolute', top: 5, right: 5, width: 8, height: 8, background: '#DC2626', borderRadius: '50%', border: '1.5px solid #fff' }} />
+            </div>
+            <img src={user.photoURL || ''} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid #E5E7EB' }} referrerPolicy="no-referrer" />
+          </div>
+        </div>
+
+        {/* Content area */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 28, background: '#F9FAFB' }}>
+
+          {/* ── VISTA: SUBIR DOCUMENTOS (contratista) ── */}
+          {(activeView === 'upload') && (
+            <div>
+              {/* Step indicator */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 20 }}>
+                {[
+                  { n: '✓', label: 'Registro', done: true, active: false },
+                  { n: '2', label: 'Documentos', done: false, active: true },
+                  { n: '3', label: 'Análisis IA', done: false, active: false },
+                  { n: '4', label: 'Aprobación', done: false, active: false },
+                ].map((step, i) => (
+                  <React.Fragment key={step.label}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
+                        background: step.done ? '#16A34A' : step.active ? '#2563EB' : '#E5E7EB',
+                        color: (step.done || step.active) ? '#fff' : '#9CA3AF',
+                      }}>{step.n}</div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: step.active ? '#2563EB' : step.done ? '#16A34A' : '#9CA3AF', whiteSpace: 'nowrap' }}>{step.label}</span>
                     </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2 lg:gap-3">
-                  <button
-                    onClick={handleReset}
-                    className="flex-1 lg:flex-none flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg font-bold text-sm transition-all active:scale-95"
-                    style={{ background: '#F3F4F6', color: '#4B5563', border: '1px solid #E5E7EB' }}
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span className="hidden sm:inline">Reiniciar</span>
-                  </button>
-
-                  {activeAgent === 'classify_doc' ? (
-                    <button
-                      onClick={() => handleAnalyze('classify_doc')}
-                      disabled={isAnalyzing}
-                      className="flex-[2] lg:flex-none flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
-                      style={{ background: '#2563EB', color: '#fff', border: 'none', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}
-                    >
-                      {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                      1. Identificar
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleAnalyze()}
-                      disabled={isAnalyzing || !canExtract}
-                      className="flex-[2] lg:flex-none flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
-                      style={{ background: '#2563EB', color: '#fff', border: 'none', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}
-                    >
-                      {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
-                      2. Analizar
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0">
-                {(['classify_doc', 'review_result', 'doc_data', 'json_output', 'custom'] as AgentType[]).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setActiveAgent(type)}
-                    disabled={type !== 'classify_doc' && !canExtract}
-                    className="whitespace-nowrap px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                    style={activeAgent === type
-                      ? { background: '#2563EB', color: '#fff', border: '1px solid #2563EB' }
-                      : { background: '#fff', color: '#6B7280', border: '1px solid #E5E7EB' }
-                    }
-                  >
-                    {type === 'classify_doc' && '1. Identificación'}
-                    {type === 'review_result' && '2. Revisión'}
-                    {type === 'doc_data' && '2. Datos'}
-                    {type === 'json_output' && '2. JSON'}
-                    {type === 'custom' && '2. Consultas'}
-                  </button>
+                    {i < 3 && <div style={{ flex: 1, height: 2, background: step.done ? '#16A34A' : '#E5E7EB', margin: '0 6px', marginBottom: 20 }} />}
+                  </React.Fragment>
                 ))}
               </div>
 
-              {activeAgent === 'custom' && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-4"
-                >
-                  <textarea
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
-                    placeholder="Escribe tu instrucción personalizada para el agente..."
-                    className="w-full p-4 rounded-2xl border-2 border-zinc-100 text-sm focus:border-zinc-900 outline-none transition-all bg-zinc-50/50"
-                    rows={2}
-                  />
-                </motion.div>
-              )}
-            </header>
+              {/* Info banner */}
+              <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#1E40AF', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                ℹ️ <span>Suba los documentos requeridos. El agente IA los analizará automáticamente en menos de 2 minutos.</span>
+              </div>
 
-            {/* Analysis Result */}
-            <div className="flex-1 overflow-y-auto p-4 lg:p-10 bg-zinc-50/30">
-              <AnimatePresence mode="wait">
-                {isAnalyzing ? (
-                  <motion.div 
-                    key="analyzing"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col items-center justify-center h-full text-zinc-400 py-20"
-                  >
-                    <div className="relative mb-6">
-                      <div className="absolute inset-0 bg-zinc-900/5 rounded-full animate-ping"></div>
-                      <div className="relative w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center border border-zinc-100">
-                        <Loader2 className="w-10 h-10 animate-spin text-zinc-900" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, alignItems: 'start' }}>
+                {/* Columna izquierda */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Upload zone */}
+                  <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+                      <div>
+                        <h2 style={{ fontSize: 15, fontWeight: 700, color: '#1F2937', margin: 0 }}>Cargar Documentos</h2>
+                        <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0' }}>PDF, DOCX, XLSX — Máx. 10 MB</p>
                       </div>
                     </div>
-                    <h3 className="text-lg font-bold text-zinc-900 mb-1">Analizando Documento</h3>
-                    <p className="text-sm font-medium text-zinc-400">Nuestros agentes están procesando la información...</p>
-                  </motion.div>
-                ) : currentAnalysis ? (
-                  <motion.div 
-                    key="result"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="max-w-4xl mx-auto"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                      <div className="flex items-center gap-3 text-emerald-600 bg-emerald-50 w-fit px-4 py-2 rounded-2xl border border-emerald-100 shadow-sm">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs font-bold uppercase tracking-widest">Análisis Completado</span>
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{ border: '2px dashed #E5E7EB', borderRadius: 10, background: '#F9FAFB', padding: 36, textAlign: 'center', cursor: 'pointer', transition: 'all .2s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#2563EB'; (e.currentTarget as HTMLDivElement).style.background = '#EFF6FF'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#E5E7EB'; (e.currentTarget as HTMLDivElement).style.background = '#F9FAFB'; }}
+                    >
+                      <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: '#374151', margin: '0 0 4px' }}>
+                        {isUploading ? `Subiendo… ${uploadProgress}%` : 'Arrasque archivos aquí'}
+                      </h3>
+                      <p style={{ fontSize: 12, color: '#9CA3AF', margin: '0 0 14px' }}>o haga clic para seleccionar desde su computador</p>
+                      <button
+                        disabled={isUploading}
+                        style={{ padding: '8px 20px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: isUploading ? 0.6 : 1 }}
+                      >
+                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin inline" /> : null} Seleccionar Archivos
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Documentos requeridos */}
+                  <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <h2 style={{ fontSize: 15, fontWeight: 700, color: '#1F2937', margin: 0 }}>Documentos Subidos</h2>
+                      <span style={{ fontSize: 11, color: '#9CA3AF' }}>{documents.length} archivos</span>
+                    </div>
+                    {documents.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px 0', color: '#9CA3AF', fontSize: 13 }}>No hay documentos subidos aún</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {documents.map(doc => {
+                          const status = getDocStatus(doc);
+                          const sc = statusConfig[status];
+                          return (
+                            <div
+                              key={doc.id}
+                              onClick={() => setSelectedDoc(doc)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8,
+                                border: `1px solid ${selectedDoc?.id === doc.id ? '#2563EB' : '#F3F4F6'}`,
+                                background: selectedDoc?.id === doc.id ? '#EFF6FF' : '#fff',
+                                cursor: 'pointer', transition: 'all .15s'
+                              }}
+                            >
+                              <div style={{ fontSize: 18, flexShrink: 0 }}>{sc.icon}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.name}</div>
+                                <div style={{ fontSize: 11, color: '#9CA3AF' }}>
+                                  {(() => { try { return new Date(doc.createdAt).toLocaleDateString('es-CL'); } catch { return '—'; } })()}
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, padding: '2px 9px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{sc.label}</span>
+                                <button onClick={(e) => handleDeleteDoc(doc.id, e)} style={{ background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', padding: 2 }}>
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      
-                      {currentAnalysis.usage && (
-                        <div className="flex items-center gap-4 px-4 py-2 bg-white rounded-2xl border border-zinc-100 shadow-sm">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Tokens:</span>
-                          <div className="flex items-center gap-3 text-[10px] font-mono font-bold">
-                            <span className="text-zinc-400">In: <span className="text-zinc-900">{currentAnalysis.usage.promptTokenCount}</span></span>
-                            <span className="text-zinc-400">Out: <span className="text-zinc-900">{currentAnalysis.usage.candidatesTokenCount}</span></span>
-                            <div className="w-px h-3 bg-zinc-200 mx-1"></div>
-                            <span className="text-zinc-900">Total: {currentAnalysis.usage.totalTokenCount}</span>
-                          </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Columna derecha */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Stats */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    {[
+                      { icon: '📄', label: 'Total Docs', value: documents.length, sub: `${documents.filter(d => getDocStatus(d) === 'approved').length} aprobados`, color: '#2563EB', border: '#BFDBFE' },
+                      { icon: '🤖', label: 'Análisis IA', value: analyses.length, sub: 'Total realizados', color: '#7C3AED', border: '#DDD6FE' },
+                    ].map(s => (
+                      <div key={s.label} style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: '18px 20px', borderLeft: `4px solid ${s.color}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{s.label}</span>
+                          <span style={{ fontSize: 20 }}>{s.icon}</span>
                         </div>
+                        <div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.value}</div>
+                        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{s.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Análisis IA */}
+                  <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <h2 style={{ fontSize: 15, fontWeight: 700, color: '#1F2937', margin: 0 }}>Análisis del Agente IA</h2>
+                      {selectedDoc && (
+                        <button onClick={handleReset} style={{ fontSize: 11, color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <RotateCcw className="w-3 h-3" /> Reiniciar
+                        </button>
                       )}
                     </div>
 
-                    <div className="bg-white p-6 lg:p-12 rounded-[2.5rem] shadow-xl shadow-zinc-200/50 border border-zinc-100 relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zinc-900 via-zinc-400 to-zinc-900 opacity-10"></div>
-                      <div className="prose prose-zinc prose-sm lg:prose-base max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-p:text-zinc-600 prose-p:leading-relaxed prose-strong:text-zinc-900 prose-code:bg-zinc-50 prose-code:p-1 prose-code:rounded-md prose-code:text-zinc-900 prose-code:before:content-none prose-code:after:content-none">
-                        <ReactMarkdown>{currentAnalysis.result}</ReactMarkdown>
+                    {!selectedDoc ? (
+                      <div style={{ textAlign: 'center', padding: '20px 0', color: '#9CA3AF', fontSize: 13 }}>
+                        <div style={{ fontSize: 28, marginBottom: 8 }}>🤖</div>
+                        Seleccione un documento de la lista para analizarlo
                       </div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    key="empty"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center h-full text-zinc-300 py-20"
-                  >
-                    <div style={{ width: 72, height: 72, background: '#EFF6FF', borderRadius: 16, border: '1px solid #BFDBFE', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, fontSize: 30 }}>
-                      🤖
-                    </div>
-                    <h3 className="text-lg font-bold mb-1" style={{ color: '#111827' }}>Listo para Analizar</h3>
-                    <p className="text-sm text-center max-w-xs" style={{ color: '#9CA3AF' }}>Selecciona un agente arriba y haz clic en el botón para comenzar el análisis.</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12" style={{ background: '#F9FAFB' }}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl w-full text-center"
-            >
-              {/* Logo central */}
-              <div className="relative inline-block mb-8">
-                <div style={{ width: 80, height: 80, background: '#EFF6FF', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', border: '1px solid #BFDBFE' }}>
-                  <span style={{ fontSize: 36 }}>🗺️</span>
+                    ) : isAnalyzing ? (
+                      <div style={{ textAlign: 'center', padding: '20px 0', color: '#6B7280', fontSize: 13 }}>
+                        <Loader2 className="w-6 h-6 animate-spin inline-block mb-2" style={{ color: '#2563EB' }} />
+                        <div style={{ marginTop: 8 }}>Analizando <strong>{selectedDoc.name}</strong>…</div>
+                        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>Estimado: menos de 2 minutos</div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {/* Resultados de análisis existentes */}
+                        {analyses.filter(a => a.documentId === selectedDoc.id).length === 0 ? (
+                          <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#1E40AF', display: 'flex', gap: 8 }}>
+                            🤖 <span>Seleccione un agente y haga clic en Analizar para comenzar.</span>
+                          </div>
+                        ) : null}
+                        {analyses.filter(a => a.documentId === selectedDoc.id).slice(-3).map(a => {
+                          const upper = a.result.toUpperCase();
+                          const isOk = upper.includes('APROBADO') && !upper.includes('NO APROBADO');
+                          const isWarn = upper.includes('VENCIDO') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO');
+                          const bg = isOk ? '#F0FDF4' : isWarn ? '#FFFBEB' : '#EFF6FF';
+                          const border = isOk ? '#BBF7D0' : isWarn ? '#FDE68A' : '#BFDBFE';
+                          const color = isOk ? '#14532D' : isWarn ? '#92400E' : '#1E40AF';
+                          const icon = isOk ? '✅' : isWarn ? '⚠️' : '🤖';
+                          return (
+                            <div key={a.id} style={{ background: bg, border: `1px solid ${border}`, borderRadius: 8, padding: '10px 14px', fontSize: 12.5, color, lineHeight: 1.5 }}>
+                              {icon} <strong>{a.agentType === 'classify_doc' ? 'Clasificación' : a.agentType === 'review_result' ? 'Revisión' : 'Análisis'}:</strong>{' '}
+                              {a.result.slice(0, 120)}{a.result.length > 120 ? '…' : ''}
+                            </div>
+                          );
+                        })}
+
+                        {/* Tabs de agentes */}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                          {(['classify_doc', 'review_result', 'doc_data', 'json_output', 'custom'] as AgentType[]).map((type) => {
+                            const canUse = type === 'classify_doc' || !!analyses.find(a => a.documentId === selectedDoc.id && a.agentType === 'classify_doc');
+                            return (
+                              <button
+                                key={type}
+                                onClick={() => setActiveAgent(type)}
+                                disabled={!canUse}
+                                style={{
+                                  padding: '5px 11px', borderRadius: 6, fontSize: 11, fontWeight: 700, border: '1px solid', cursor: canUse ? 'pointer' : 'not-allowed',
+                                  background: activeAgent === type ? '#2563EB' : '#fff',
+                                  color: activeAgent === type ? '#fff' : '#6B7280',
+                                  borderColor: activeAgent === type ? '#2563EB' : '#E5E7EB',
+                                  opacity: canUse ? 1 : 0.4,
+                                }}
+                              >
+                                {type === 'classify_doc' ? '1. Identificar' : type === 'review_result' ? '2. Revisión' : type === 'doc_data' ? '2. Datos' : type === 'json_output' ? '2. JSON' : '2. Consulta'}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {activeAgent === 'custom' && (
+                          <textarea
+                            value={customPrompt} onChange={e => setCustomPrompt(e.target.value)}
+                            placeholder="Escribe tu instrucción para el agente…"
+                            rows={2}
+                            style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #E5E7EB', borderRadius: 8, fontSize: 13, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                          />
+                        )}
+
+                        <button
+                          onClick={() => handleAnalyze()}
+                          disabled={isAnalyzing}
+                          style={{ width: '100%', padding: '10px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: isAnalyzing ? 0.6 : 1, marginTop: 4 }}
+                        >
+                          {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                          Analizar con IA
+                        </button>
+
+                        {/* Resultado completo */}
+                        {analyses.find(a => a.documentId === selectedDoc.id && a.agentType === activeAgent) && (
+                          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, padding: 16, marginTop: 4, maxHeight: 240, overflowY: 'auto' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Resultado completo</div>
+                            <div className="prose prose-sm max-w-none prose-p:text-gray-600 prose-headings:font-bold prose-headings:text-gray-800">
+                              <ReactMarkdown>{analyses.find(a => a.documentId === selectedDoc.id && a.agentType === activeAgent)!.result}</ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+            </div>
+          )}
 
-              <h1 className="text-2xl lg:text-3xl font-bold mb-3 tracking-tight leading-tight" style={{ color: '#111827' }}>
-                Bienvenido a <span style={{ color: '#2563EB' }}>AtlasOps</span>
-              </h1>
-              <p className="text-base mb-10 max-w-lg mx-auto leading-relaxed" style={{ color: '#6B7280' }}>
-                Sube un documento laboral y utiliza los agentes de IA para clasificarlo, revisar su vigencia y extraer datos relevantes.
-              </p>
+          {/* ── VISTA: MIS DOCUMENTOS ── */}
+          {activeView === 'docs' && (
+            <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Mis Documentos</h2>
+                  <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0' }}>{documents.length} documentos subidos</p>
+                </div>
+                <button onClick={() => { setActiveView('upload'); fileInputRef.current?.click(); }} style={{ padding: '7px 14px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  + Subir nuevo
+                </button>
+              </div>
+              {documents.length === 0 ? (
+                <div style={{ padding: 48, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>No hay documentos aún. Vaya a "Subir Documentos" para agregar el primero.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: '#F9FAFB' }}>
+                        {['Documento', 'Tipo', 'Fecha', 'Estado', 'Acción'].map(h => (
+                          <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #E5E7EB' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documents.map((doc, i) => {
+                        const status = getDocStatus(doc);
+                        const sc = statusConfig[status];
+                        return (
+                          <tr key={doc.id} style={{ borderBottom: '1px solid #F3F4F6', background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
+                            <td style={{ padding: '12px 16px', color: '#111827', fontWeight: 600 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <FileText className="w-4 h-4" style={{ color: '#9CA3AF', flexShrink: 0 }} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>{doc.name}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 16px' }}>
+                              <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{doc.type.split('/')[1]?.toUpperCase() || 'DOC'}</span>
+                            </td>
+                            <td style={{ padding: '12px 16px', color: '#9CA3AF', fontSize: 12 }}>
+                              {(() => { try { return new Date(doc.createdAt).toLocaleDateString('es-CL'); } catch { return '—'; } })()}
+                            </td>
+                            <td style={{ padding: '12px 16px' }}>
+                              <span style={{ background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, padding: '2px 9px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{sc.label}</span>
+                            </td>
+                            <td style={{ padding: '12px 16px' }}>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button onClick={() => { setSelectedDoc(doc); setActiveView('upload'); }} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ver</button>
+                                {status === 'rejected' && (
+                                  <button onClick={() => { setActiveView('upload'); fileInputRef.current?.click(); }} style={{ padding: '4px 10px', background: '#2563EB', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>Resubir</button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-10">
+          {/* ── VISTA: ALERTAS ── */}
+          {activeView === 'alerts' && (
+            <div style={{ maxWidth: 700 }}>
+              <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Centro de Alertas</h2>
+                {analyses.filter(a => {
+                  const upper = a.result.toUpperCase();
+                  return upper.includes('VENCIDO') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO');
+                }).length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: '#9CA3AF', fontSize: 14 }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+                    No hay alertas activas. Todos sus documentos están en orden.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {analyses
+                      .filter(a => { const upper = a.result.toUpperCase(); return upper.includes('VENCIDO') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO'); })
+                      .map(a => {
+                        const doc = documents.find(d => d.id === a.documentId);
+                        return (
+                          <div key={a.id} style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: '#92400E', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                            <span>⚠️</span>
+                            <div>
+                              <strong>{doc?.name || 'Documento'}:</strong> {a.result.slice(0, 150)}{a.result.length > 150 ? '…' : ''}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── VISTA: REVISIÓN DOCS (mandante) ── */}
+          {activeView === 'revision' && (
+            <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Revisión de Documentos</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
                 {[
-                  { icon: '🔍', title: 'Clasificación Automática', desc: 'Identifica el tipo de documento y su relevancia para el cumplimiento de la Ley 20.123.', color: '#EFF6FF', border: '#BFDBFE', iconBg: '#2563EB' },
-                  { icon: '✅', title: 'Revisión de Vigencia', desc: 'Detecta documentos vencidos, observaciones y estado de aprobación en tiempo real.', color: '#F0FDF4', border: '#BBF7D0', iconBg: '#16A34A' },
-                  { icon: '📋', title: 'Extracción de Datos', desc: 'Extrae RUTs, fechas, montos y nombres con alta precisión desde PDFs e imágenes.', color: '#FFFBEB', border: '#FDE68A', iconBg: '#D97706' },
-                  { icon: '🤖', title: 'Consultas Personalizadas', desc: 'Formula cualquier pregunta sobre el documento y el agente IA responde en segundos.', color: '#F5F3FF', border: '#DDD6FE', iconBg: '#7C3AED' },
-                ].map(card => (
-                  <div key={card.title} style={{ padding: '20px 22px', borderRadius: 10, background: card.color, border: `1px solid ${card.border}` }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 8, background: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginBottom: 12 }}>{card.icon}</div>
-                    <h3 style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.title}</h3>
-                    <p style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6 }}>{card.desc}</p>
+                  { icon: '👷', label: 'Mis contratistas', val: '—', color: '#2563EB' },
+                  { icon: '📄', label: 'Docs en revisión', val: documents.filter(d => getDocStatus(d) === 'reviewing').length, color: '#D97706' },
+                  { icon: '✅', label: 'Docs aprobados', val: documents.filter(d => getDocStatus(d) === 'approved').length, color: '#16A34A' },
+                ].map(s => (
+                  <div key={s.label} style={{ background: '#F9FAFB', borderRadius: 10, border: `1px solid #E5E7EB`, padding: '16px 20px', borderLeft: `4px solid ${s.color}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, color: '#6B7280' }}>{s.label}</span>
+                      <span style={{ fontSize: 18 }}>{s.icon}</span>
+                    </div>
+                    <div style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.val}</div>
                   </div>
                 ))}
               </div>
-
-              <div className="flex flex-col items-center gap-3">
-                <button
-                  onClick={() => setIsSidebarOpen(true)}
-                  className="lg:hidden flex items-center gap-2 py-3 px-8 rounded-lg font-bold text-sm active:scale-95 transition-all"
-                  style={{ background: '#2563EB', color: '#fff', border: 'none', boxShadow: '0 2px 10px rgba(37,99,235,0.3)' }}
-                >
-                  <Upload className="w-4 h-4" />
-                  Subir primer documento
-                </button>
-                <div className="hidden lg:flex items-center gap-2" style={{ color: '#9CA3AF' }}>
-                  <ChevronRight className="w-4 h-4 animate-bounce rotate-90" />
-                  <span style={{ fontSize: 12, fontWeight: 500 }}>Sube un documento en el panel lateral para comenzar</span>
-                </div>
+              <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: '#1E40AF' }}>
+                🏢 Mostrando documentos de sus contratistas asignados. Funcionalidad multi-empresa disponible en versión empresa.
               </div>
-            </motion.div>
-          </div>
-        )}
-      </main>
+            </div>
+          )}
+
+          {/* ── VISTA: MIS CONTRATISTAS (mandante) ── */}
+          {activeView === 'contractors' && (
+            <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Mis Contratistas</h2>
+              <div style={{ textAlign: 'center', padding: '48px 0', color: '#9CA3AF', fontSize: 14 }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>👷</div>
+                <p>La gestión de contratistas estará disponible en la versión empresa de AtlasOps.</p>
+                <p style={{ fontSize: 12, marginTop: 8 }}>Contáctenos en <strong>contacto@atlasops.cl</strong> para más información.</p>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
     </div>
   );
 }
