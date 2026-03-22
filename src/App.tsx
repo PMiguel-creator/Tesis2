@@ -111,6 +111,11 @@ export default function App() {
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Login form ────────────────────────────────────────────────────────────
+  const [selectedRole, setSelectedRole] = useState<'contratista' | 'mandante' | ''>('');
+  const [loginFormEmail, setLoginFormEmail] = useState('');
+  const [loginFormError, setLoginFormError] = useState('');
+
   // ── Admin ─────────────────────────────────────────────────────────────────
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -874,42 +879,121 @@ export default function App() {
 
         {/* Panel derecho — formulario */}
         <div style={{
-          width: 460, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 40, background: '#fff'
+          width: 480, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '40px 48px', background: '#fff', flexShrink: 0
         }}>
           <div style={{ width: '100%', maxWidth: 380 }}>
+            {/* Volver */}
             <button
-              onClick={() => setShowLanding(true)}
+              onClick={() => { setShowLanding(true); setLoginFormError(''); }}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13,
-                color: '#71717a', background: 'none', border: 'none', padding: 0,
-                cursor: 'pointer', marginBottom: 28
+                color: '#6B7280', background: 'none', border: 'none', padding: 0,
+                cursor: 'pointer', marginBottom: 32
               }}
             >
               <ArrowLeft size={14} /> Volver al sitio
             </button>
-            <h2 style={{ fontSize: 26, fontWeight: 800, color: '#09090b', margin: '0 0 6px' }}>Bienvenido</h2>
-            <p style={{ fontSize: 14, color: '#71717a', margin: '0 0 32px' }}>
-              Ingrese con su cuenta para acceder al portal AtlasOps
+
+            <h2 style={{ fontSize: 26, fontWeight: 800, color: '#111827', margin: '0 0 6px' }}>Bienvenido</h2>
+            <p style={{ fontSize: 14, color: '#6B7280', margin: '0 0 28px', lineHeight: 1.5 }}>
+              Ingrese sus credenciales para acceder a su portal
             </p>
 
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleLogin}
+            {/* Error */}
+            {loginFormError && (
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 7, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#DC2626' }}>
+                {loginFormError}
+              </div>
+            )}
+
+            {/* Tipo de acceso */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Tipo de acceso
+              </label>
+              <select
+                value={selectedRole}
+                onChange={e => { setSelectedRole(e.target.value as any); setLoginFormError(''); }}
+                style={{
+                  width: '100%', padding: '10px 12px', border: '1px solid #D1D5DB',
+                  borderRadius: 7, fontSize: 14, color: selectedRole ? '#111827' : '#9CA3AF',
+                  background: '#fff', cursor: 'pointer', outline: 'none',
+                  appearance: 'auto'
+                }}
+              >
+                <option value="">Seleccione su perfil…</option>
+                <option value="contratista">Contratista</option>
+                <option value="mandante">Mandante</option>
+              </select>
+            </div>
+
+            {/* Correo */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Correo electrónico
+              </label>
+              <input
+                type="email"
+                value={loginFormEmail}
+                onChange={e => setLoginFormEmail(e.target.value)}
+                placeholder="usuario@empresa.cl"
+                style={{
+                  width: '100%', padding: '10px 12px', border: '1px solid #D1D5DB',
+                  borderRadius: 7, fontSize: 14, color: '#111827', outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Contraseña */}
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Contraseña
+              </label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                style={{
+                  width: '100%', padding: '10px 12px', border: '1px solid #D1D5DB',
+                  borderRadius: 7, fontSize: 14, color: '#111827', outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Botón ingresar */}
+            <button
+              onClick={() => {
+                if (!selectedRole) {
+                  setLoginFormError('Seleccione su tipo de acceso para continuar.');
+                  return;
+                }
+                setLoginFormError('');
+                handleLogin();
+              }}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                gap: 10, padding: '13px 20px', background: '#09090b', color: '#fff',
-                border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer'
+                gap: 10, padding: '12px 20px', background: '#2563EB', color: '#fff',
+                border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(37,99,235,0.3)'
               }}
             >
-              <LogIn size={18} />
-              Ingresar con Google
-            </motion.button>
+              <LogIn size={17} />
+              Ingresar al portal →
+            </button>
 
-            <p style={{ fontSize: 12, color: '#a1a1aa', marginTop: 24, textAlign: 'center', lineHeight: 1.6 }}>
-              ¿No tiene cuenta? Contacte a su empresa mandante o a AtlasOps para solicitar acceso.
-            </p>
+            {/* Footer */}
+            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #F3F4F6', textAlign: 'center' }}>
+              <p style={{ fontSize: 12, color: '#9CA3AF', margin: '0 0 6px' }}>
+                ¿No tiene cuenta?{' '}
+                <span style={{ color: '#2563EB', cursor: 'pointer', fontWeight: 600 }}>Solicite acceso aquí</span>
+              </p>
+              <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>
+                ¿Olvidó su contraseña?{' '}
+                <span style={{ color: '#2563EB', cursor: 'pointer', fontWeight: 600 }}>Recuperar contraseña</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
