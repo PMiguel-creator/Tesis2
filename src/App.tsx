@@ -88,6 +88,9 @@ interface AnalysisData {
   };
 }
 
+// ── Correos con acceso de administrador ──────────────────────────────────────
+const ADMIN_EMAILS = ['jeganag@gmail.com'];
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -107,6 +110,13 @@ export default function App() {
   const [logoClickCount, setLogoClickCount] = useState(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [adminDocs, setAdminDocs] = useState<DocumentData[]>([]);
+  const [adminAnalyses, setAdminAnalyses] = useState<AnalysisData[]>([]);
+  const [adminError, setAdminError] = useState<string | null>(null);
 
   const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
     const message = error instanceof Error ? error.message : String(error);
@@ -220,6 +230,24 @@ export default function App() {
       unsubscribeAnalyses();
     };
   }, [user]);
+
+  // Carga TODOS los documentos y análisis cuando el admin está autenticado
+  // Requiere reglas Firestore que permitan lectura global para jeganag@gmail.com
+  useEffect(() => {
+    if (!user || !isAdminMode) return;
+
+    const unsubDocs = onSnapshot(collection(db, 'documents'), (snapshot) => {
+      setAdminDocs(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DocumentData)));
+    }, (err) => {
+      setAdminError(`Sin permiso para ver todos los documentos. Verifica las reglas Firestore. (${err.message})`);
+    });
+
+    const unsubAnalyses = onSnapshot(collection(db, 'analyses'), (snapshot) => {
+      setAdminAnalyses(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as AnalysisData)));
+    }, () => {});
+
+    return () => { unsubDocs(); unsubAnalyses(); };
+  }, [user, isAdminMode]);
 
   // Llama al backend para analizar un documento con Gemini
   // El servidor descarga el archivo (sin restricciones CORS) y llama a la IA
@@ -415,24 +443,256 @@ export default function App() {
 
   const currentAnalysis = analyses.find(a => a.documentId === selectedDoc?.id && a.agentType === activeAgent);
 
-  // Triple-clic en logo → futuro acceso admin (Phase 3)
+  // Triple-clic en logo → pantalla de acceso admin (Phase 3)
   const handleLogoClick = () => {
     if (logoClickTimer.current) clearTimeout(logoClickTimer.current);
-    setLogoClickCount(prev => {
-      const next = prev + 1;
-      if (next >= 3) {
-        // Placeholder Phase 3: aquí irá la pantalla admin
-        return 0;
-      }
+    const next = logoClickCount + 1;
+    setLogoClickCount(next);
+    if (next >= 3) {
+      setLogoClickCount(0);
+      setShowAdminLogin(true);
+      setAdminError(null);
+    } else {
       logoClickTimer.current = setTimeout(() => setLogoClickCount(0), 600);
-      return next;
-    });
+    }
   };
+
+  // Login restringido al panel de administración
+  const handleAdminLogin = async () => {
+    setAdminError(null);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      if (ADMIN_EMAILS.includes(result.user.email || '')) {
+        setIsAdminMode(true);
+        setShowAdminLogin(false);
+      } else {
+        await signOut(auth);
+        setAdminError('Acceso denegado. Esta cuenta no tiene privilegios de administrador.');
+      }
+    } catch (error) {
+      console.error('Admin login error:', error);
+      setAdminError('Error al iniciar sesión. Inténtalo nuevamente.');
+    }
+  };
+
+  // Salir del modo admin
+  const handleAdminLogout = async () => {
+    setIsAdminMode(false);
+    setAdminDocs([]);
+    setAdminAnalyses([]);
+    setAdminError(null);
+    await signOut(auth);
+  };
+
+  // ── PANTALLA DE LOGIN ADMIN ───────────────────────────────────────────────
+  if (showAdminLogin) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#060B14', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div style={{ width: 420, textAlign: 'center', padding: '0 24px' }}>
+          {/* Badge restringido */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 32,
+            background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)',
+            borderRadius: 20, padding: '5px 14px', fontSize: 11, fontWeight: 700, color: '#FCA5A5', letterSpacing: '0.06em'
+          }}>
+            🔒 ACCESO RESTRINGIDO
+          </div>
+
+          {/* Logo */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <div style={{
+              width: 60, height: 60, background: '#1E293B', borderRadius: 14,
+              border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28
+            }}>🗺️</div>
+          </div>
+
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: '#fff', margin: '0 0 8px' }}>AtlasOps Admin</h1>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', margin: '0 0 40px', lineHeight: 1.6 }}>
+            Panel de administración. Solo personal autorizado puede acceder.
+          </p>
+
+          {/* Error */}
+          {adminError && (
+            <div style={{
+              background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)',
+              borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#FCA5A5', textAlign: 'left'
+            }}>
+              ⚠️ {adminError}
+            </div>
+          )}
+
+          {/* Botón login */}
+          <button
+            onClick={handleAdminLogin}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              padding: '13px 20px', background: '#DC2626', color: '#fff', border: 'none',
+              borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(220,38,38,0.3)'
+            }}
+          >
+            <LogIn size={18} />
+            Ingresar con Google
+          </button>
+
+          <button
+            onClick={() => { setShowAdminLogin(false); setAdminError(null); }}
+            style={{ marginTop: 20, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 13, cursor: 'pointer' }}
+          >
+            ← Volver al sitio
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthReady) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#060B14' }}>
         <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      </div>
+    );
+  }
+
+  // ── PANEL DE ADMINISTRACIÓN ───────────────────────────────────────────────
+  if (isAdminMode && user) {
+    const uniqueUserIds = [...new Set(adminDocs.map(d => d.userId))];
+    const docsLast24h = adminDocs.filter(d => {
+      try { return (Date.now() - new Date(d.createdAt).getTime()) < 86400000; } catch { return false; }
+    }).length;
+
+    return (
+      <div style={{ minHeight: '100vh', background: '#F9FAFB', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Topbar admin */}
+        <div style={{
+          height: 56, background: '#0F172A', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '0 28px', position: 'sticky', top: 0, zIndex: 50,
+          borderBottom: '2px solid #DC2626'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 32, height: 32, background: '#DC2626', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🗺️</div>
+            <span style={{ color: '#fff', fontWeight: 800, fontSize: 16 }}>AtlasOps</span>
+            <div style={{
+              background: 'rgba(220,38,38,0.2)', border: '1px solid rgba(220,38,38,0.4)',
+              borderRadius: 20, padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#FCA5A5', letterSpacing: '0.08em'
+            }}>ADMIN</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src={user.photoURL || ''} alt="" style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)' }} referrerPolicy="no-referrer" />
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>{user.email}</span>
+            </div>
+            <button
+              onClick={handleAdminLogout}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px',
+                background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)',
+                borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#FCA5A5', cursor: 'pointer'
+              }}
+            >
+              <LogOut size={13} /> Salir
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: '28px 32px', maxWidth: 1200, margin: '0 auto' }}>
+          {/* Título */}
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: '0 0 4px' }}>Panel de Administración</h1>
+            <p style={{ fontSize: 13, color: '#9CA3AF' }}>Vista global de actividad en la plataforma AtlasOps</p>
+          </div>
+
+          {/* Error Firestore */}
+          {adminError && (
+            <div style={{
+              background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
+              padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#DC2626'
+            }}>
+              ⚠️ {adminError}
+            </div>
+          )}
+
+          {/* Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+            {[
+              { label: 'Usuarios registrados', value: uniqueUserIds.length, icon: '👥', color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE' },
+              { label: 'Documentos totales', value: adminDocs.length, icon: '📄', color: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0' },
+              { label: 'Análisis realizados', value: adminAnalyses.length, icon: '🤖', color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
+              { label: 'Docs últimas 24h', value: docsLast24h, icon: '⚡', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+            ].map(s => (
+              <div key={s.label} style={{
+                background: '#fff', borderRadius: 10, border: `1px solid ${s.border}`,
+                padding: '18px 20px', borderLeft: `4px solid ${s.color}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{s.label}</span>
+                  <span style={{ fontSize: 20 }}>{s.icon}</span>
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 900, color: s.color }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabla de documentos */}
+          <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Todos los Documentos</h2>
+                <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0' }}>{adminDocs.length} documentos en la plataforma</p>
+              </div>
+            </div>
+            {adminDocs.length === 0 ? (
+              <div style={{ padding: '48px', textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
+                {adminError ? 'No se pudieron cargar los documentos (ver error arriba)' : 'Cargando documentos…'}
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#F9FAFB' }}>
+                      {['Documento', 'Tipo', 'Usuario (UID)', 'Fecha', 'Análisis'].map(h => (
+                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #E5E7EB' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminDocs.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((d, i) => {
+                      const docAnalyses = adminAnalyses.filter(a => a.documentId === d.id).length;
+                      return (
+                        <tr key={d.id} style={{ borderBottom: '1px solid #F3F4F6', background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
+                          <td style={{ padding: '12px 16px', color: '#111827', fontWeight: 600, maxWidth: 200 }}>
+                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
+                          </td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
+                              {d.type.split('/')[1]?.toUpperCase() || 'DOC'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 16px', color: '#6B7280', fontFamily: 'monospace', fontSize: 11 }}>
+                            {d.userId.slice(0, 14)}…
+                          </td>
+                          <td style={{ padding: '12px 16px', color: '#9CA3AF', fontSize: 12 }}>
+                            {(() => { try { return new Date(d.createdAt).toLocaleDateString('es-CL'); } catch { return '—'; } })()}
+                          </td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span style={{
+                              background: docAnalyses > 0 ? '#F0FDF4' : '#F3F4F6',
+                              color: docAnalyses > 0 ? '#16A34A' : '#9CA3AF',
+                              padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600
+                            }}>
+                              {docAnalyses} {docAnalyses === 1 ? 'análisis' : 'análisis'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

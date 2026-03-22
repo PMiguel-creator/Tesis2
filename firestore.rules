@@ -41,7 +41,8 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() &&
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "jose.egana@mail.udp.cl" && request.auth.token.email_verified == true));
+          (request.auth.token.email == "jose.egana@mail.udp.cl" && request.auth.token.email_verified == true) ||
+          (request.auth.token.email == "jeganag@gmail.com" && request.auth.token.email_verified == true));
     }
 
     function isValidDateString(dateStr) {
@@ -87,13 +88,15 @@ service cloud.firestore {
 
     match /documents/{docId} {
       allow create: if isAuthenticated() && isValidDocument(request.resource.data);
-      allow read, delete: if isOwner(resource.data.userId);
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
       allow update: if isOwner(resource.data.userId) && isValidDocument(request.resource.data);
     }
 
     match /analyses/{analysisId} {
       allow create: if isAuthenticated() && isValidAnalysis(request.resource.data);
-      allow read, delete: if isOwner(resource.data.userId);
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
       allow update: if isOwner(resource.data.userId) && isValidAnalysis(request.resource.data);
     }
 
