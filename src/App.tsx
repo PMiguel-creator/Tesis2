@@ -20,19 +20,19 @@ import {
 import { auth, db, storage } from './firebase';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import type { AgentType } from './services/geminiService';
-import { 
-  FileText, 
-  Upload, 
-  Trash2, 
-  Brain, 
-  LogOut, 
-  LogIn, 
-  Loader2, 
+import {
+  FileText,
+  Upload,
+  Trash2,
+  LogOut,
+  LogIn,
+  Loader2,
   CheckCircle2,
   RotateCcw,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -102,6 +102,9 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
+  const [logoClickCount, setLogoClickCount] = useState(0);
+  const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
@@ -411,35 +414,244 @@ export default function App() {
 
   const currentAnalysis = analyses.find(a => a.documentId === selectedDoc?.id && a.agentType === activeAgent);
 
+  // Triple-clic en logo → futuro acceso admin (Phase 3)
+  const handleLogoClick = () => {
+    setLogoClickCount(prev => {
+      const next = prev + 1;
+      if (logoClickTimer.current) clearTimeout(logoClickTimer.current);
+      if (next >= 3) {
+        // Placeholder Phase 3: aquí irá la pantalla admin
+        setLogoClickCount(0);
+        return 0;
+      }
+      logoClickTimer.current = setTimeout(() => setLogoClickCount(0), 600);
+      return next;
+    });
+  };
+
   if (!isAuthReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#060B14' }}>
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
       </div>
     );
   }
 
   if (!user) {
+    // ── LANDING PAGE ──────────────────────────────────────────────────
+    if (showLanding) {
+      return (
+        <div className="min-h-screen" style={{ background: '#0F172A', fontFamily: "'Inter', system-ui, sans-serif" }}>
+          {/* Navbar */}
+          <nav style={{
+            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, height: 64,
+            background: 'rgba(15,23,42,0.95)', backdropFilter: 'blur(8px)',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 6%'
+          }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'default', userSelect: 'none' }}
+              onClick={handleLogoClick}
+            >
+              <div style={{
+                width: 38, height: 38, background: '#2563EB', borderRadius: 9,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20
+              }}>🗺️</div>
+              <span style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>AtlasOps</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>Gestión de Fuerza Laboral Tercerizada</span>
+              <button
+                onClick={() => setShowLanding(false)}
+                style={{
+                  padding: '8px 20px', background: '#2563EB', color: '#fff', border: 'none',
+                  borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                Iniciar sesión
+              </button>
+            </div>
+          </nav>
+
+          {/* Hero */}
+          <section style={{
+            minHeight: '100vh', paddingTop: 120, paddingBottom: 80, paddingLeft: '6%', paddingRight: '6%',
+            background: 'linear-gradient(160deg,#0F172A 0%,#1E3A5F 45%,#0891B2 100%)',
+            display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden'
+          }}>
+            {/* glow decorativo */}
+            <div style={{
+              position: 'absolute', top: '-40%', right: '-20%', width: 700, height: 700,
+              background: 'radial-gradient(circle,rgba(37,99,235,.25) 0%,transparent 70%)',
+              pointerEvents: 'none'
+            }} />
+            <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
+              {/* Columna izquierda */}
+              <div>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20,
+                  background: 'rgba(37,99,235,.25)', border: '1px solid rgba(37,99,235,.4)',
+                  borderRadius: 20, padding: '5px 14px', fontSize: 12, fontWeight: 600, color: '#93C5FD'
+                }}>
+                  ⚡ Plataforma SaaS con Agentes IA
+                </div>
+                <h1 style={{ fontSize: 44, fontWeight: 900, color: '#fff', lineHeight: 1.15, marginBottom: 22, margin: '0 0 22px' }}>
+                  Gestión inteligente de{' '}
+                  <span style={{ color: '#60A5FA' }}>fuerza laboral tercerizada</span>
+                </h1>
+                <p style={{ fontSize: 17, color: 'rgba(255,255,255,.72)', lineHeight: 1.7, marginBottom: 36, maxWidth: 520 }}>
+                  AtlasOps automatiza la revisión y validación de documentos laborales de sus contratistas mediante agentes de Inteligencia Artificial. Cumpla la Ley de Subcontratación sin papeleo, sin errores y en tiempo real.
+                </p>
+                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setShowLanding(false)}
+                    style={{
+                      padding: '14px 28px', background: '#2563EB', color: '#fff', border: 'none',
+                      borderRadius: 9, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                      boxShadow: '0 4px 20px rgba(37,99,235,.4)'
+                    }}
+                  >
+                    Iniciar sesión →
+                  </button>
+                  <button style={{
+                    padding: '14px 28px', background: 'rgba(255,255,255,.08)', color: '#fff',
+                    border: '1.5px solid rgba(255,255,255,.2)', borderRadius: 9, fontSize: 15, fontWeight: 600, cursor: 'pointer'
+                  }}>
+                    Solicitar demo
+                  </button>
+                </div>
+                {/* Stats */}
+                <div style={{ display: 'flex', gap: 32, marginTop: 40 }}>
+                  {[
+                    { val: '70%', lbl: 'Reducción carga\nadministrativa' },
+                    { val: '<2 min', lbl: 'Análisis por\nagente IA' },
+                    { val: '100%', lbl: 'Cumplimiento\nLey 20.123' },
+                  ].map(s => (
+                    <div key={s.val}>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: '#fff' }}>{s.val}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', marginTop: 2, whiteSpace: 'pre-line' }}>{s.lbl}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Columna derecha — tarjeta de métricas */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {[
+                  { icon: '🤖', label: 'Agentes IA activos', val: '4 agentes', color: '#3B82F6' },
+                  { icon: '📄', label: 'Documentos procesados hoy', val: '147 docs', color: '#10B981' },
+                  { icon: '✅', label: 'Tasa de aprobación', val: '94.2%', color: '#8B5CF6' },
+                  { icon: '⚡', label: 'Tiempo promedio análisis', val: '1.8 min', color: '#F59E0B' },
+                ].map(m => (
+                  <div key={m.label} style={{
+                    background: 'rgba(255,255,255,.06)', borderRadius: 12,
+                    border: '1px solid rgba(255,255,255,.1)', padding: '16px 20px',
+                    display: 'flex', alignItems: 'center', gap: 16
+                  }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 10,
+                      background: `${m.color}22`, border: `1px solid ${m.color}44`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0
+                    }}>{m.icon}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', marginBottom: 2 }}>{m.label}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>{m.val}</div>
+                    </div>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    // ── LOGIN PAGE ────────────────────────────────────────────────────
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-white p-8 rounded-3xl shadow-sm border border-zinc-200 text-center"
-        >
-          <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Brain className="w-8 h-8 text-white" />
+      <div className="min-h-screen flex" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Panel izquierdo — marca */}
+        <div style={{
+          flex: 1, background: 'linear-gradient(160deg,#0F172A 0%,#1E3A5F 50%,#0891B2 100%)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: 60, position: 'relative', overflow: 'hidden'
+        }}>
+          <div style={{
+            position: 'absolute', top: '-30%', left: '-20%', width: 500, height: 500,
+            background: 'radial-gradient(circle,rgba(37,99,235,.2) 0%,transparent 70%)',
+            pointerEvents: 'none'
+          }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
+            <div style={{
+              width: 44, height: 44, background: '#2563EB', borderRadius: 10,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22
+            }}>🗺️</div>
+            <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>AtlasOps</span>
           </div>
-          <h1 className="text-2xl font-semibold text-zinc-900 mb-2">Agente AtlasOps</h1>
-          <p className="text-zinc-500 mb-8">Sube tus documentos y deja que nuestros agentes inteligentes extraigan el valor por ti.</p>
-          <button 
-            onClick={handleLogin}
-            className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white py-3 px-6 rounded-xl font-medium hover:bg-zinc-800 transition-colors"
-          >
-            <LogIn className="w-5 h-5" />
-            Ingresar con Google
-          </button>
-        </motion.div>
+          <h1 style={{ fontSize: 36, fontWeight: 900, color: '#fff', lineHeight: 1.2, margin: '0 0 20px' }}>
+            La plataforma que <span style={{ color: '#60A5FA' }}>gestiona</span> su fuerza laboral tercerizada
+          </h1>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,.6)', lineHeight: 1.7, margin: '0 0 40px' }}>
+            Agentes IA que analizan, validan y ejecutan sobre documentos laborales en tiempo real. Cumpla la Ley de Subcontratación sin esfuerzo manual.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[
+              { icon: '🤖', text: 'Análisis semántico automático de documentos' },
+              { icon: '🔐', text: 'Datos encriptados y aislados por empresa' },
+              { icon: '⚡', text: 'Resultados en menos de 2 minutos' },
+              { icon: '📊', text: 'Dashboard de cumplimiento en tiempo real' },
+            ].map(f => (
+              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8, background: 'rgba(255,255,255,.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0
+                }}>{f.icon}</div>
+                <span style={{ fontSize: 13.5, color: 'rgba(255,255,255,.7)' }}>{f.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Panel derecho — formulario */}
+        <div style={{
+          width: 460, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 40, background: '#fff'
+        }}>
+          <div style={{ width: '100%', maxWidth: 380 }}>
+            <button
+              onClick={() => setShowLanding(true)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13,
+                color: '#71717a', background: 'none', border: 'none', padding: 0,
+                cursor: 'pointer', marginBottom: 28
+              }}
+            >
+              <ArrowLeft size={14} /> Volver al sitio
+            </button>
+            <h2 style={{ fontSize: 26, fontWeight: 800, color: '#09090b', margin: '0 0 6px' }}>Bienvenido</h2>
+            <p style={{ fontSize: 14, color: '#71717a', margin: '0 0 32px' }}>
+              Ingrese con su cuenta para acceder al portal AtlasOps
+            </p>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleLogin}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: 10, padding: '13px 20px', background: '#09090b', color: '#fff',
+                border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer'
+              }}
+            >
+              <LogIn size={18} />
+              Ingresar con Google
+            </motion.button>
+
+            <p style={{ fontSize: 12, color: '#a1a1aa', marginTop: 24, textAlign: 'center', lineHeight: 1.6 }}>
+              ¿No tiene cuenta? Contacte a su empresa mandante o a AtlasOps para solicitar acceso.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
