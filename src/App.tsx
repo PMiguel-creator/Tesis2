@@ -1360,7 +1360,7 @@ export default function App() {
       {/* ── Main ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: isMobile ? 56 : 0 }}>
         {/* Topbar */}
-        <div style={{ height: 58, background: '#fff', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', position: 'sticky', top: isMobile ? 56 : 0, zIndex: 10, flexShrink: 0 }}>
+        <div style={{ height: 54, background: '#fff', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 14px' : '0 28px', position: 'sticky', top: isMobile ? 56 : 0, zIndex: 10, flexShrink: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <h1 style={{ fontSize: 17, fontWeight: 700, color: '#1F2937', margin: 0 }}>{viewTitles[activeView] || 'Panel'}</h1>
             {activeRole === 'contratista' && (
@@ -1386,7 +1386,7 @@ export default function App() {
         </div>
 
         {/* Content area */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 28, background: '#F9FAFB' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 14 : 28, background: '#F9FAFB' }}>
 
           {/* ── VISTA: SUBIR DOCUMENTOS (contratista) ── */}
           {(activeView === 'upload') && (
@@ -1424,20 +1424,20 @@ export default function App() {
                 ];
 
                 return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 24 }}>
+                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 8 : 0, marginBottom: 18 }}>
                     {stages.map((s, i) => (
                       <React.Fragment key={s.title}>
-                        <div style={{ flex: 1, background: s.bg, border: `1.5px solid ${s.border}`, borderRadius: 12, padding: '14px 16px', transition: 'all .2s' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ flex: 1, background: s.bg, border: `1.5px solid ${s.border}`, borderRadius: 12, padding: '12px 14px', transition: 'all .2s' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div style={{ width: 32, height: 32, borderRadius: 8, background: s.active ? s.color : '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{s.icon}</div>
+                              <div style={{ width: 28, height: 28, borderRadius: 7, background: s.active ? s.color : '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>{s.icon}</div>
                               <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.title}</span>
                             </div>
                             <span style={{ fontSize: 10, fontWeight: 700, background: s.badgeBg, color: s.badgeColor, padding: '2px 8px', borderRadius: 10 }}>{s.badge}</span>
                           </div>
                           <p style={{ margin: 0, fontSize: 11, color: '#6B7280', lineHeight: 1.4 }}>{s.desc}</p>
                         </div>
-                        {i < 1 && (
+                        {i < 1 && !isMobile && (
                           <div style={{ display: 'flex', alignItems: 'center', padding: '0 6px', flexShrink: 0 }}>
                             <div style={{ width: 20, height: 2, background: stages[i].active ? stages[i].color : '#E5E7EB' }} />
                             <div style={{ width: 0, height: 0, borderTop: '5px solid transparent', borderBottom: '5px solid transparent', borderLeft: `6px solid ${stages[i].active ? stages[i].color : '#E5E7EB'}` }} />
@@ -1454,7 +1454,7 @@ export default function App() {
                 ℹ️ <span>Suba los documentos requeridos. El agente IA los analizará automáticamente en menos de 2 minutos.</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, alignItems: 'start' }}>
                 {/* Columna izquierda */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* Upload zone */}
@@ -1793,7 +1793,7 @@ export default function App() {
                   🏢 Mostrando solo contratistas de <strong>{contractorName}</strong>.
                 </div>
                 {/* 4 stat cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 12, marginBottom: 18 }}>
                   {[
                     { icon: '👷', label: 'Mis contratistas', val: documents.length > 0 ? 1 : 0, color: '#2563EB', borderColor: '#2563EB' },
                     { icon: '📬', label: 'Docs por revisar',  val: docsRevisando,  color: '#1F2937', borderColor: '#D97706' },
@@ -1896,28 +1896,28 @@ export default function App() {
             const bc = badgeColors[badgeStatus];
             return (
               <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Mis Contratistas — {contractorName}</h2>
+                <div style={{ padding: isMobile ? '12px 14px' : '16px 20px', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <h2 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Mis Contratistas — {contractorName}</h2>
                     <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0' }}>Contratistas asignados a su empresa</p>
                   </div>
-                  <button style={{ padding: '6px 14px', background: '#2563EB', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>+ Invitar</button>
+                  <button style={{ padding: '6px 12px', background: '#2563EB', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer', flexShrink: 0 }}>+ Invitar</button>
                 </div>
-                <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 14 }}>
+                <div style={{ padding: isMobile ? 12 : 20, display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
                   {total === 0 ? (
-                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '48px 0', color: '#9CA3AF', fontSize: 14 }}>
+                    <div style={{ textAlign: 'center', padding: '48px 0', color: '#9CA3AF', fontSize: 14 }}>
                       <div style={{ fontSize: 36, marginBottom: 12 }}>👷</div>
                       No hay contratistas asignados aún.
                     </div>
                   ) : (
                     /* Tarjeta estilo prototipo: flex horizontal avatar | info | stats */
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', boxShadow: '0 1px 4px rgba(0,0,0,.06)', cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isMobile ? 12 : 16, background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', boxShadow: '0 1px 4px rgba(0,0,0,.06)', cursor: 'pointer' }}>
                       {/* Avatar */}
                       <div style={{ width: 44, height: 44, borderRadius: '50%', background: grad, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 16, flexShrink: 0 }}>{initials}</div>
                       {/* Info */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{contractorName}</h3>
-                        <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 6px' }}>{user.email}</p>
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contractorName}</h3>
+                        <p style={{ fontSize: 11, color: '#9CA3AF', margin: '2px 0 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</p>
                         <span style={{ background: bc.bg, color: bc.color, padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{badgeLabels[badgeStatus]}</span>
                       </div>
                       {/* Stats cumplimiento */}
