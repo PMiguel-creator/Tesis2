@@ -1352,9 +1352,6 @@ export default function App() {
               {(() => {
                 const hasDocuments = documents.length > 0;
                 const hasAnalyses = analyses.length > 0;
-                const allStatuses = documents.map(d => getDocStatus(d));
-                const allApproved = hasDocuments && allStatuses.every(s => s === 'approved');
-                const anyRejected = allStatuses.some(s => s === 'rejected');
 
                 const stages = [
                   {
@@ -1381,18 +1378,6 @@ export default function App() {
                     badgeBg: hasAnalyses ? '#EDE9FE' : '#F3F4F6',
                     badgeColor: hasAnalyses ? '#6D28D9' : '#9CA3AF',
                   },
-                  {
-                    icon: allApproved ? '✅' : anyRejected ? '❌' : '⏳',
-                    title: 'Aprobación',
-                    desc: 'Resultado final de la revisión documental',
-                    active: allApproved || anyRejected,
-                    color: allApproved ? '#16A34A' : anyRejected ? '#DC2626' : '#9CA3AF',
-                    bg: allApproved ? '#F0FDF4' : anyRejected ? '#FEF2F2' : '#F9FAFB',
-                    border: allApproved ? '#BBF7D0' : anyRejected ? '#FECACA' : '#E5E7EB',
-                    badge: allApproved ? 'Aprobado' : anyRejected ? 'Rechazado' : 'En espera',
-                    badgeBg: allApproved ? '#DCFCE7' : anyRejected ? '#FEE2E2' : '#F3F4F6',
-                    badgeColor: allApproved ? '#15803D' : anyRejected ? '#B91C1C' : '#9CA3AF',
-                  },
                 ];
 
                 return (
@@ -1409,7 +1394,7 @@ export default function App() {
                           </div>
                           <p style={{ margin: 0, fontSize: 11, color: '#6B7280', lineHeight: 1.4 }}>{s.desc}</p>
                         </div>
-                        {i < 2 && (
+                        {i < 1 && (
                           <div style={{ display: 'flex', alignItems: 'center', padding: '0 6px', flexShrink: 0 }}>
                             <div style={{ width: 20, height: 2, background: stages[i].active ? stages[i].color : '#E5E7EB' }} />
                             <div style={{ width: 0, height: 0, borderTop: '5px solid transparent', borderBottom: '5px solid transparent', borderLeft: `6px solid ${stages[i].active ? stages[i].color : '#E5E7EB'}` }} />
