@@ -737,24 +737,24 @@ export default function App() {
             position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, height: 64,
             background: 'rgba(15,23,42,0.95)', backdropFilter: 'blur(8px)',
             borderBottom: '1px solid rgba(255,255,255,0.07)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 6%'
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 4%' : '0 6%'
           }}>
             <div
               style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'default', userSelect: 'none' }}
               onClick={handleLogoClick}
             >
               <div style={{
-                width: 38, height: 38, background: '#2563EB', borderRadius: 9,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20
+                width: 36, height: 36, background: '#2563EB', borderRadius: 9,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18
               }}>🗺️</div>
-              <span style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>AtlasOps</span>
+              <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>AtlasOps</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>Gestión de Fuerza Laboral Tercerizada</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {!isMobile && <span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>Gestión de Fuerza Laboral Tercerizada</span>}
               <button
                 onClick={() => setShowLanding(false)}
                 style={{
-                  padding: '8px 20px', background: '#2563EB', color: '#fff', border: 'none',
+                  padding: isMobile ? '7px 14px' : '8px 20px', background: '#2563EB', color: '#fff', border: 'none',
                   borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer'
                 }}
               >
@@ -765,7 +765,11 @@ export default function App() {
 
           {/* Hero */}
           <section style={{
-            minHeight: '100vh', paddingTop: 120, paddingBottom: 80, paddingLeft: '6%', paddingRight: '6%',
+            minHeight: '100vh',
+            paddingTop: isMobile ? 80 : 120,
+            paddingBottom: isMobile ? 60 : 80,
+            paddingLeft: isMobile ? '5%' : '6%',
+            paddingRight: isMobile ? '5%' : '6%',
             background: 'linear-gradient(160deg,#0F172A 0%,#1E3A5F 45%,#0891B2 100%)',
             display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden'
           }}>
@@ -775,28 +779,34 @@ export default function App() {
               background: 'radial-gradient(circle,rgba(37,99,235,.25) 0%,transparent 70%)',
               pointerEvents: 'none'
             }} />
-            <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
+            <div style={{
+              maxWidth: 1200, margin: '0 auto', width: '100%',
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+              gap: isMobile ? 36 : 60,
+              alignItems: 'center'
+            }}>
               {/* Columna izquierda */}
               <div>
                 <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20,
+                  display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16,
                   background: 'rgba(37,99,235,.25)', border: '1px solid rgba(37,99,235,.4)',
                   borderRadius: 20, padding: '5px 14px', fontSize: 12, fontWeight: 600, color: '#93C5FD'
                 }}>
                   ⚡ Plataforma SaaS con Agentes IA
                 </div>
-                <h1 style={{ fontSize: 44, fontWeight: 900, color: '#fff', lineHeight: 1.15, marginBottom: 22, margin: '0 0 22px' }}>
+                <h1 style={{ fontSize: isMobile ? 28 : 44, fontWeight: 900, color: '#fff', lineHeight: 1.2, margin: '0 0 16px' }}>
                   Gestión inteligente de{' '}
                   <span style={{ color: '#60A5FA' }}>fuerza laboral tercerizada</span>
                 </h1>
-                <p style={{ fontSize: 17, color: 'rgba(255,255,255,.72)', lineHeight: 1.7, marginBottom: 36, maxWidth: 520 }}>
+                <p style={{ fontSize: isMobile ? 14 : 17, color: 'rgba(255,255,255,.72)', lineHeight: 1.7, margin: '0 0 28px' }}>
                   AtlasOps automatiza la revisión y validación de documentos laborales de sus contratistas mediante agentes de Inteligencia Artificial. Cumpla la Ley de Subcontratación sin papeleo, sin errores y en tiempo real.
                 </p>
-                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
                   <button
                     onClick={() => setShowLanding(false)}
                     style={{
-                      padding: '14px 28px', background: '#2563EB', color: '#fff', border: 'none',
+                      padding: '13px 24px', background: '#2563EB', color: '#fff', border: 'none',
                       borderRadius: 9, fontSize: 15, fontWeight: 700, cursor: 'pointer',
                       boxShadow: '0 4px 20px rgba(37,99,235,.4)'
                     }}
@@ -806,7 +816,7 @@ export default function App() {
                   <button
                     onClick={() => { setShowDemoModal(true); setDemoTab('wa'); setDemoFormSent(false); }}
                     style={{
-                      padding: '14px 28px', background: 'rgba(255,255,255,.08)', color: '#fff',
+                      padding: '13px 24px', background: 'rgba(255,255,255,.08)', color: '#fff',
                       border: '1.5px solid rgba(255,255,255,.2)', borderRadius: 9, fontSize: 15, fontWeight: 600, cursor: 'pointer'
                     }}
                   >
@@ -814,22 +824,22 @@ export default function App() {
                   </button>
                 </div>
                 {/* Stats */}
-                <div style={{ display: 'flex', gap: 32, marginTop: 40 }}>
+                <div style={{ display: 'flex', gap: isMobile ? 20 : 32, marginTop: 32, flexWrap: 'wrap' }}>
                   {[
                     { val: '70%', lbl: 'Reducción carga\nadministrativa' },
                     { val: '<2 min', lbl: 'Análisis por\nagente IA' },
                     { val: '100%', lbl: 'Cumplimiento\nLey 20.123' },
                   ].map(s => (
                     <div key={s.val}>
-                      <div style={{ fontSize: 28, fontWeight: 900, color: '#fff' }}>{s.val}</div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', marginTop: 2, whiteSpace: 'pre-line' }}>{s.lbl}</div>
+                      <div style={{ fontSize: isMobile ? 22 : 28, fontWeight: 900, color: '#fff' }}>{s.val}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginTop: 2, whiteSpace: 'pre-line' }}>{s.lbl}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Columna derecha — tarjeta de métricas */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
                   { icon: '🤖', label: 'Agentes IA activos', val: '4 agentes', color: '#3B82F6' },
                   { icon: '📄', label: 'Documentos procesados hoy', val: '147 docs', color: '#10B981' },
@@ -838,19 +848,19 @@ export default function App() {
                 ].map(m => (
                   <div key={m.label} style={{
                     background: 'rgba(255,255,255,.06)', borderRadius: 12,
-                    border: '1px solid rgba(255,255,255,.1)', padding: '16px 20px',
-                    display: 'flex', alignItems: 'center', gap: 16
+                    border: '1px solid rgba(255,255,255,.1)', padding: isMobile ? '12px 14px' : '16px 20px',
+                    display: 'flex', alignItems: 'center', gap: 14
                   }}>
                     <div style={{
-                      width: 44, height: 44, borderRadius: 10,
+                      width: 40, height: 40, borderRadius: 10,
                       background: `${m.color}22`, border: `1px solid ${m.color}44`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0
                     }}>{m.icon}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', marginBottom: 2 }}>{m.label}</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>{m.val}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginBottom: 2 }}>{m.label}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{m.val}</div>
                     </div>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, boxShadow: `0 0 8px ${m.color}`, flexShrink: 0 }} />
                   </div>
                 ))}
               </div>
@@ -984,8 +994,9 @@ export default function App() {
 
     // ── LOGIN PAGE ────────────────────────────────────────────────────
     return (
-      <div className="min-h-screen flex" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-        {/* Panel izquierdo — marca */}
+      <div className="min-h-screen flex" style={{ fontFamily: "'Inter', system-ui, sans-serif", flexDirection: isMobile ? 'column' : 'row' }}>
+        {/* Panel izquierdo — marca (oculto en móvil, solo muestra logo pequeño) */}
+        {!isMobile ? (
         <div style={{
           flex: 1, background: 'linear-gradient(160deg,#0F172A 0%,#1E3A5F 50%,#0891B2 100%)',
           display: 'flex', flexDirection: 'column', justifyContent: 'center',
@@ -1026,11 +1037,20 @@ export default function App() {
             ))}
           </div>
         </div>
+        ) : (
+          /* Header compacto en móvil */
+          <div style={{ background: 'linear-gradient(135deg,#0F172A,#1E3A5F)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, background: '#2563EB', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🗺️</div>
+            <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>AtlasOps</span>
+          </div>
+        )}
 
         {/* Panel derecho — formulario */}
         <div style={{
-          width: 480, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '40px 48px', background: '#fff', flexShrink: 0
+          width: isMobile ? '100%' : 480,
+          flex: isMobile ? 1 : undefined,
+          display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'center',
+          padding: isMobile ? '32px 24px' : '40px 48px', background: '#fff', flexShrink: 0
         }}>
           <div style={{ width: '100%', maxWidth: 380 }}>
             {/* Volver */}
