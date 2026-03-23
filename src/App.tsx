@@ -1458,8 +1458,8 @@ export default function App() {
                 {/* Columna izquierda */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* Upload zone */}
-                  <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+                  <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: isMobile ? 14 : 22 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                       <div>
                         <h2 style={{ fontSize: 15, fontWeight: 700, color: '#1F2937', margin: 0 }}>Cargar Documentos</h2>
                         <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0' }}>PDF — Máx. 10 MB</p>
@@ -1467,7 +1467,7 @@ export default function App() {
                     </div>
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      style={{ border: '2px dashed #E5E7EB', borderRadius: 10, background: '#F9FAFB', padding: 36, textAlign: 'center', cursor: 'pointer', transition: 'all .2s' }}
+                      style={{ border: '2px dashed #E5E7EB', borderRadius: 10, background: '#F9FAFB', padding: isMobile ? 20 : 36, textAlign: 'center', cursor: 'pointer', transition: 'all .2s' }}
                       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#2563EB'; (e.currentTarget as HTMLDivElement).style.background = '#EFF6FF'; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#E5E7EB'; (e.currentTarget as HTMLDivElement).style.background = '#F9FAFB'; }}
                     >
@@ -1486,7 +1486,7 @@ export default function App() {
                   </div>
 
                   {/* Documentos requeridos */}
-                  <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
+                  <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: isMobile ? 14 : 22 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                       <h2 style={{ fontSize: 15, fontWeight: 700, color: '#1F2937', margin: 0 }}>Documentos Subidos</h2>
                       <span style={{ fontSize: 11, color: '#9CA3AF' }}>{documents.length} archivos</span>
@@ -1651,7 +1651,38 @@ export default function App() {
               </div>
               {documents.length === 0 ? (
                 <div style={{ padding: 48, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>No hay documentos aún. Vaya a "Subir Documentos" para agregar el primero.</div>
+              ) : isMobile ? (
+                /* ── Vista móvil: tarjetas ── */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {documents.map((doc, i) => {
+                    const status = getDocStatus(doc);
+                    const sc = statusConfig[status];
+                    return (
+                      <div key={doc.id} style={{ padding: '12px 14px', borderBottom: i < documents.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                            <FileText className="w-4 h-4" style={{ color: '#9CA3AF', flexShrink: 0 }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.name}</span>
+                          </div>
+                          <span style={{ background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{sc.label}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 11, color: '#9CA3AF' }}>
+                            {(() => { try { return new Date(doc.createdAt).toLocaleDateString('es-CL'); } catch { return '—'; } })()}
+                          </span>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => { if (doc.storageUrl) { window.open(doc.storageUrl, '_blank', 'noopener,noreferrer'); } else { setSelectedDoc(doc); setActiveView('upload'); } }} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ver</button>
+                            {status === 'rejected' && (
+                              <button onClick={() => { setActiveView('upload'); fileInputRef.current?.click(); }} style={{ padding: '4px 10px', background: '#2563EB', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>Resubir</button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
+                /* ── Vista escritorio: tabla ── */
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
@@ -1756,12 +1787,12 @@ export default function App() {
                                     <div style={{ fontSize: 12, color: '#B45309' }}>{resultado.slice(0, 150)}{resultado.length > 150 ? '…' : ''}</div>
                                   </div>
                                 </div>
-                                <div style={{ background: '#F0FDF4', borderTop: '1px solid #BBF7D0', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#15803D' }}>
-                                    <span>✉️</span>
-                                    <span>Correo despachado a <strong>{user.email}</strong></span>
+                                <div style={{ background: '#F0FDF4', borderTop: '1px solid #BBF7D0', padding: '8px 14px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 4 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#15803D', minWidth: 0 }}>
+                                    <span style={{ flexShrink: 0 }}>✉️</span>
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Correo despachado a <strong>{user.email}</strong></span>
                                   </div>
-                                  <span style={{ fontSize: 10, color: '#6B7280' }}>{formatFecha(a.createdAt)}</span>
+                                  <span style={{ fontSize: 10, color: '#6B7280', flexShrink: 0 }}>{formatFecha(a.createdAt)}</span>
                                 </div>
                               </div>
                             );
@@ -1800,7 +1831,7 @@ export default function App() {
                     { icon: '✅', label: 'Aprobados',         val: docsAprobados,  color: '#1F2937', borderColor: '#16A34A' },
                     { icon: '⚠️', label: 'Vencimientos',      val: docsVencidos,   color: '#1F2937', borderColor: '#DC2626' },
                   ].map(s => (
-                    <div key={s.label} style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', borderLeft: `4px solid ${s.borderColor}`, padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+                    <div key={s.label} style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', borderLeft: `4px solid ${s.borderColor}`, padding: isMobile ? '12px 12px' : '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                         <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{s.label}</span>
                         <span style={{ fontSize: 22 }}>{s.icon}</span>
@@ -1817,7 +1848,54 @@ export default function App() {
                   </div>
                   {documents.length === 0 ? (
                     <div style={{ padding: '40px 0', textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>No hay documentos en revisión.</div>
+                  ) : isMobile ? (
+                    /* ── Vista móvil: tarjetas ── */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                      {documents.map((doc, idx) => {
+                        const status = getDocStatus(doc);
+                        const reviewA = analyses.find(a => a.documentId === doc.id && a.agentType === 'review_result');
+                        const classifyA = analyses.find(a => a.documentId === doc.id && a.agentType === 'classify_doc');
+                        const iaResult = (reviewA?.result || classifyA?.result || '');
+                        const iaColor = iaResult.toUpperCase().includes('APROBADO') && !iaResult.toUpperCase().includes('NO APROBADO') ? '#16A34A'
+                                      : iaResult.toUpperCase().includes('NO APROBADO') || iaResult.toUpperCase().includes('VENCID') ? '#DC2626'
+                                      : '#D97706';
+                        const iaPrefix = iaResult.toUpperCase().includes('APROBADO') && !iaResult.toUpperCase().includes('NO APROBADO') ? '✓'
+                                       : iaResult.toUpperCase().includes('NO APROBADO') || iaResult.toUpperCase().includes('VENCID') ? '✗' : '⚠';
+                        const iaText = reviewA ? `${iaPrefix} ${iaResult.slice(0,50)}${iaResult.length > 50 ? '…' : ''}`
+                                     : classifyA ? `⚠ ${iaResult.slice(0,50)}${iaResult.length > 50 ? '…' : ''}`
+                                     : '— Sin análisis';
+                        const fecha = (() => { try { const d = doc.createdAt?.toDate ? doc.createdAt.toDate() : new Date(doc.createdAt); return d.toLocaleDateString('es-CL',{day:'2-digit',month:'short'}); } catch { return '—'; } })();
+                        const badges: Record<string,{bg:string;color:string;border:string;label:string}> = {
+                          approved:  {bg:'#F0FDF4',color:'#16A34A',border:'#BBF7D0',label:'Aprobado'},
+                          rejected:  {bg:'#FEF2F2',color:'#DC2626',border:'#FECACA',label:'Rechazado'},
+                          reviewing: {bg:'#EFF6FF',color:'#2563EB',border:'#BFDBFE',label:'Por revisar'},
+                          pending:   {bg:'#F9FAFB',color:'#9CA3AF',border:'#E5E7EB',label:'Pendiente'},
+                        };
+                        const b = badges[status] || badges.pending;
+                        return (
+                          <div key={doc.id} style={{ padding: '12px 14px', borderBottom: idx < documents.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+                            {/* Fila 1: nombre + estado */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>📄 {doc.name}</span>
+                              <span style={{ background: b.bg, color: b.color, border: `1px solid ${b.border}`, padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{b.label}</span>
+                            </div>
+                            {/* Fila 2: IA + fecha */}
+                            <div style={{ fontSize: 11, color: iaColor, marginBottom: 8 }}>{iaText}</div>
+                            {/* Fila 3: fecha + botón */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: 11, color: '#9CA3AF' }}>{fecha}</span>
+                              <button
+                                onClick={() => doc.storageUrl && window.open(doc.storageUrl, '_blank', 'noopener,noreferrer')}
+                                disabled={!doc.storageUrl}
+                                style={{ padding: '5px 12px', background: '#2563EB', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: doc.storageUrl ? 'pointer' : 'not-allowed', opacity: doc.storageUrl ? 1 : 0.45 }}
+                              >📄 Ver PDF</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : (
+                    /* ── Vista escritorio: tabla ── */
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
