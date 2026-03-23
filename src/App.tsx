@@ -1271,7 +1271,35 @@ export default function App() {
             </div>
 
             {/* File input hidden */}
-            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.txt,.doc,.docx,image/*" />
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf" />
+
+            {/* Token usage */}
+            {(() => {
+              const totalTokens = analyses.reduce((sum, a) => sum + (a.usage?.totalTokenCount || 0), 0);
+              const promptTokens = analyses.reduce((sum, a) => sum + (a.usage?.promptTokenCount || 0), 0);
+              const outputTokens = analyses.reduce((sum, a) => sum + (a.usage?.candidatesTokenCount || 0), 0);
+              const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
+              return (
+                <div style={{ margin: '0 12px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Tokens consumidos</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4 }}>{fmt(totalTokens)}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{fmt(promptTokens)}</div>
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>entrada</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{fmt(outputTokens)}</div>
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>salida</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{analyses.length}</div>
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>análisis</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* User footer */}
             <div style={{ marginTop: 'auto', padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1435,22 +1463,6 @@ export default function App() {
 
                 {/* Columna derecha */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Stats */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    {[
-                      { icon: '📄', label: 'Total Docs', value: documents.length, sub: `${documents.filter(d => getDocStatus(d) === 'approved').length} aprobados`, color: '#2563EB', border: '#BFDBFE' },
-                      { icon: '🤖', label: 'Análisis IA', value: analyses.length, sub: 'Total realizados', color: '#7C3AED', border: '#DDD6FE' },
-                    ].map(s => (
-                      <div key={s.label} style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: '18px 20px', borderLeft: `4px solid ${s.color}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{s.label}</span>
-                          <span style={{ fontSize: 20 }}>{s.icon}</span>
-                        </div>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.value}</div>
-                        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{s.sub}</div>
-                      </div>
-                    ))}
-                  </div>
 
                   {/* Análisis IA */}
                   <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
