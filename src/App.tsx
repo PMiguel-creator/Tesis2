@@ -1699,10 +1699,19 @@ export default function App() {
           {activeView === 'alerts' && (
             <div style={{ maxWidth: 700 }}>
               {(() => {
-                const alertAnalyses = analyses.filter(a => {
-                  const upper = a.result.toUpperCase();
+                const isAlert = (result: string) => {
+                  const upper = (result || '').toUpperCase();
                   return upper.includes('VENCIDO') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO');
-                });
+                };
+                const alertAnalyses = analyses.filter(a => isAlert(a.result));
+
+                const formatFecha = (createdAt: any): string => {
+                  try {
+                    const d = createdAt?.toDate ? createdAt.toDate() : new Date(createdAt);
+                    return d.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                  } catch { return '—'; }
+                };
+
                 return (
                   <>
                     {/* Banner resumen correos */}
@@ -1732,26 +1741,22 @@ export default function App() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                           {alertAnalyses.map(a => {
                             const doc = documents.find(d => d.id === a.documentId);
-                            const fechaAlerta = a.createdAt
-                              ? new Date(typeof a.createdAt === 'string' ? a.createdAt : a.createdAt?.toDate?.() || a.createdAt).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                              : '—';
+                            const resultado = a.result || '';
                             return (
                               <div key={a.id} style={{ border: '1px solid #FDE68A', borderRadius: 8, overflow: 'hidden' }}>
-                                {/* Cabecera alerta */}
                                 <div style={{ background: '#FFFBEB', padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                                   <span style={{ fontSize: 16 }}>⚠️</span>
                                   <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E', marginBottom: 2 }}>{doc?.name || 'Documento'}</div>
-                                    <div style={{ fontSize: 12, color: '#B45309' }}>{a.result.slice(0, 150)}{a.result.length > 150 ? '…' : ''}</div>
+                                    <div style={{ fontSize: 12, color: '#B45309' }}>{resultado.slice(0, 150)}{resultado.length > 150 ? '…' : ''}</div>
                                   </div>
                                 </div>
-                                {/* Footer correo despachado */}
                                 <div style={{ background: '#F0FDF4', borderTop: '1px solid #BBF7D0', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#15803D' }}>
                                     <span>✉️</span>
                                     <span>Correo despachado a <strong>{user.email}</strong></span>
                                   </div>
-                                  <span style={{ fontSize: 10, color: '#6B7280' }}>{fechaAlerta}</span>
+                                  <span style={{ fontSize: 10, color: '#6B7280' }}>{formatFecha(a.createdAt)}</span>
                                 </div>
                               </div>
                             );
