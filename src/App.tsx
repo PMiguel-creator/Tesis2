@@ -1393,7 +1393,7 @@ export default function App() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                       <div>
                         <h2 style={{ fontSize: 15, fontWeight: 700, color: '#1F2937', margin: 0 }}>Cargar Documentos</h2>
-                        <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0' }}>PDF, DOCX, XLSX — Máx. 10 MB</p>
+                        <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0' }}>PDF — Máx. 10 MB</p>
                       </div>
                     </div>
                     <div
