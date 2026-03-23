@@ -46,7 +46,7 @@ router.post('/', async (req: Request, res: Response) => {
     );
 
     const request = ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash-preview-04-17",
       contents: [
         {
           parts: [
