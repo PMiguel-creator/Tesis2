@@ -1771,41 +1771,165 @@ export default function App() {
           )}
 
           {/* ── VISTA: REVISIÓN DOCS (mandante) ── */}
-          {activeView === 'revision' && (
-            <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Revisión de Documentos</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
-                {[
-                  { icon: '👷', label: 'Mis contratistas', val: '—', color: '#2563EB' },
-                  { icon: '📄', label: 'Docs en revisión', val: documents.filter(d => getDocStatus(d) === 'reviewing').length, color: '#D97706' },
-                  { icon: '✅', label: 'Docs aprobados', val: documents.filter(d => getDocStatus(d) === 'approved').length, color: '#16A34A' },
-                ].map(s => (
-                  <div key={s.label} style={{ background: '#F9FAFB', borderRadius: 10, border: `1px solid #E5E7EB`, padding: '16px 20px', borderLeft: `4px solid ${s.color}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, color: '#6B7280' }}>{s.label}</span>
-                      <span style={{ fontSize: 18 }}>{s.icon}</span>
+          {activeView === 'revision' && (() => {
+            const docsRevisando = documents.filter(d => getDocStatus(d) === 'reviewing').length;
+            const docsAprobados = documents.filter(d => getDocStatus(d) === 'approved').length;
+            const docsVencidos  = documents.filter(d => {
+              const st = getDocStatus(d);
+              const a  = analyses.find(a => a.documentId === d.id && a.agentType === 'review_result');
+              return st === 'rejected' && a && (a.result || '').toUpperCase().includes('VENCID');
+            }).length;
+            return (
+              <div>
+                {/* Banner */}
+                <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '10px 16px', marginBottom: 20, fontSize: 13, color: '#1E40AF' }}>
+                  🏢 Mostrando documentos de sus contratistas asignados.
+                </div>
+                {/* Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+                  {[
+                    { icon: '👷', label: 'Mis contratistas', val: documents.length > 0 ? 1 : 0, color: '#2563EB', bg: '#EFF6FF' },
+                    { icon: '📬', label: 'Docs por revisar',  val: docsRevisando,  color: '#D97706', bg: '#FFFBEB' },
+                    { icon: '✅', label: 'Aprobados',         val: docsAprobados,  color: '#16A34A', bg: '#F0FDF4' },
+                    { icon: '⚠️', label: 'Vencimientos',      val: docsVencidos,   color: '#DC2626', bg: '#FEF2F2' },
+                  ].map(s => (
+                    <div key={s.label} style={{ background: s.bg, borderRadius: 10, border: '1px solid #E5E7EB', padding: '16px 18px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>{s.label}</span>
+                        <span style={{ fontSize: 18 }}>{s.icon}</span>
+                      </div>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.val}</div>
                     </div>
-                    <div style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.val}</div>
+                  ))}
+                </div>
+                {/* Cola de revisión */}
+                <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB' }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB' }}>
+                    <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Cola de Revisión</h2>
                   </div>
-                ))}
+                  {documents.length === 0 ? (
+                    <div style={{ padding: '40px 0', textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>No hay documentos en revisión.</div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: '#F9FAFB' }}>
+                          {['Contratista', 'Documento', 'Fecha', 'Análisis IA', 'Estado', 'Acción'].map(h => (
+                            <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {documents.map(doc => {
+                          const status = getDocStatus(doc);
+                          const reviewA = analyses.find(a => a.documentId === doc.id && a.agentType === 'review_result');
+                          const classifyA = analyses.find(a => a.documentId === doc.id && a.agentType === 'classify_doc');
+                          const iaText = reviewA ? (reviewA.result || '').slice(0, 50) + ((reviewA.result || '').length > 50 ? '…' : '')
+                                       : classifyA ? 'Clasificado — pendiente revisión'
+                                       : 'Sin análisis';
+                          const fecha = (() => { try { const d = doc.createdAt?.toDate ? doc.createdAt.toDate() : new Date(doc.createdAt); return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }); } catch { return '—'; } })();
+                          const sc: Record<string, { bg: string; color: string; border: string; label: string }> = {
+                            approved:  { bg: '#F0FDF4', color: '#16A34A', border: '#BBF7D0', label: 'Aprobado' },
+                            rejected:  { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA', label: 'Rechazado' },
+                            reviewing: { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE', label: 'En revisión' },
+                            pending:   { bg: '#F9FAFB', color: '#9CA3AF', border: '#E5E7EB', label: 'Pendiente' },
+                          };
+                          const badge = sc[status] || sc.pending;
+                          return (
+                            <tr key={doc.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                              <td style={{ padding: '12px 14px', fontWeight: 600, color: '#374151' }}>{contractorName}</td>
+                              <td style={{ padding: '12px 14px', color: '#374151' }}>📄 {doc.name}</td>
+                              <td style={{ padding: '12px 14px', color: '#9CA3AF' }}>{fecha}</td>
+                              <td style={{ padding: '12px 14px', color: '#6B7280', maxWidth: 180 }}>{iaText}</td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <span style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, padding: '2px 9px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{badge.label}</span>
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <button onClick={() => doc.storageUrl && window.open(doc.storageUrl, '_blank', 'noopener,noreferrer')} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ver</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
               </div>
-              <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: '#1E40AF' }}>
-                🏢 Mostrando documentos de sus contratistas asignados. Funcionalidad multi-empresa disponible en versión empresa.
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ── VISTA: MIS CONTRATISTAS (mandante) ── */}
-          {activeView === 'contractors' && (
-            <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Mis Contratistas</h2>
-              <div style={{ textAlign: 'center', padding: '48px 0', color: '#9CA3AF', fontSize: 14 }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>👷</div>
-                <p>La gestión de contratistas estará disponible en la versión empresa de AtlasOps.</p>
-                <p style={{ fontSize: 12, marginTop: 8 }}>Contáctenos en <strong>contacto@atlasops.cl</strong> para más información.</p>
+          {activeView === 'contractors' && (() => {
+            // Agrupar documentos por contratista (en demo: un solo contratista = usuario actual)
+            const docsAprobados = documents.filter(d => getDocStatus(d) === 'approved').length;
+            const total = documents.length;
+            const pct = total > 0 ? Math.round((docsAprobados / total) * 100) : 0;
+            const initials = contractorName.replace('Contratista ', 'C');
+            const gradients = [
+              'linear-gradient(135deg,#2563EB,#7C3AED)',
+              'linear-gradient(135deg,#059669,#065F46)',
+              'linear-gradient(135deg,#D97706,#B45309)',
+              'linear-gradient(135deg,#DC2626,#991B1B)',
+            ];
+            const grad = gradients[parseInt(contractorName.replace('Contratista ', '')) % gradients.length];
+            return (
+              <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Mis Contratistas</h2>
+                  <button style={{ padding: '6px 14px', background: '#2563EB', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>+ Invitar</button>
+                </div>
+                <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 14 }}>
+                  {total === 0 ? (
+                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '48px 0', color: '#9CA3AF', fontSize: 14 }}>
+                      <div style={{ fontSize: 36, marginBottom: 12 }}>👷</div>
+                      No hay contratistas asignados aún.
+                    </div>
+                  ) : (
+                    <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 18 }}>
+                      {/* Header tarjeta */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: '50%', background: grad, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>{initials}</div>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{contractorName}</div>
+                          <div style={{ fontSize: 11, color: '#9CA3AF' }}>{user.email}</div>
+                        </div>
+                      </div>
+                      {/* Stats inline */}
+                      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                        {[
+                          { label: 'Docs subidos', val: total, color: '#2563EB' },
+                          { label: 'Aprobados',    val: docsAprobados, color: '#16A34A' },
+                          { label: 'Análisis',     val: analyses.length, color: '#7C3AED' },
+                        ].map(s => (
+                          <div key={s.label} style={{ flex: 1, textAlign: 'center', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 7, padding: '8px 4px' }}>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.val}</div>
+                            <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 2 }}>{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Barra de progreso */}
+                      <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: '#6B7280' }}>Documentos aprobados</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: pct === 100 ? '#16A34A' : '#D97706' }}>{pct}%</span>
+                      </div>
+                      <div style={{ height: 6, background: '#E5E7EB', borderRadius: 3 }}>
+                        <div style={{ height: 6, width: `${pct}%`, background: pct === 100 ? '#16A34A' : '#2563EB', borderRadius: 3, transition: 'width .4s ease' }} />
+                      </div>
+                      {/* Badge estado */}
+                      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                        <span style={{
+                          padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600,
+                          background: pct === 100 ? '#DCFCE7' : pct > 50 ? '#DBEAFE' : '#FEF3C7',
+                          color:      pct === 100 ? '#15803D' : pct > 50 ? '#1D4ED8' : '#D97706',
+                        }}>
+                          {pct === 100 ? '✅ Documentación completa' : pct > 50 ? '🔄 En progreso' : '⚠️ Requiere atención'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
         </div>
       </div>
