@@ -1348,37 +1348,78 @@ export default function App() {
           {/* ── VISTA: SUBIR DOCUMENTOS (contratista) ── */}
           {(activeView === 'upload') && (
             <div>
-              {/* Step indicator */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 20 }}>
-                {(() => {
-                  const hasDocuments = documents.length > 0;
-                  const hasAnalyses = analyses.length > 0;
-                  const allStatuses = documents.map(d => getDocStatus(d));
-                  const allApproved = hasDocuments && allStatuses.every(s => s === 'approved');
-                  const anyRejected = allStatuses.some(s => s === 'rejected');
-                  const step1Bg = hasDocuments ? '#2563EB' : '#E5E7EB';
-                  const step2Bg = hasAnalyses ? '#2563EB' : '#E5E7EB';
-                  const step3Bg = allApproved ? '#16A34A' : anyRejected ? '#DC2626' : '#E5E7EB';
-                  const steps = [
-                    { n: '1', label: 'Documentos', bg: step1Bg, line: hasDocuments ? '#2563EB' : '#E5E7EB' },
-                    { n: '2', label: 'Análisis IA', bg: step2Bg, line: hasAnalyses ? '#2563EB' : '#E5E7EB' },
-                    { n: '3', label: 'Aprobación', bg: step3Bg, line: '#E5E7EB' },
-                  ];
-                  return steps.map((step, i) => (
-                    <React.Fragment key={step.label}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
-                          background: step.bg,
-                          color: step.bg !== '#E5E7EB' ? '#fff' : '#9CA3AF',
-                        }}>{step.n}</div>
-                        <span style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', color: step.bg === '#DC2626' ? '#DC2626' : step.bg === '#16A34A' ? '#16A34A' : step.bg === '#2563EB' ? '#2563EB' : '#9CA3AF' }}>{step.label}</span>
-                      </div>
-                      {i < 2 && <div style={{ flex: 1, height: 2, background: step.line, margin: '0 6px', marginBottom: 20 }} />}
-                    </React.Fragment>
-                  ));
-                })()}
-              </div>
+              {/* Diagrama de flujo */}
+              {(() => {
+                const hasDocuments = documents.length > 0;
+                const hasAnalyses = analyses.length > 0;
+                const allStatuses = documents.map(d => getDocStatus(d));
+                const allApproved = hasDocuments && allStatuses.every(s => s === 'approved');
+                const anyRejected = allStatuses.some(s => s === 'rejected');
+
+                const stages = [
+                  {
+                    icon: '📄',
+                    title: 'Subir PDF',
+                    desc: 'Carga tus documentos en formato PDF',
+                    active: hasDocuments,
+                    color: hasDocuments ? '#2563EB' : '#9CA3AF',
+                    bg: hasDocuments ? '#EFF6FF' : '#F9FAFB',
+                    border: hasDocuments ? '#BFDBFE' : '#E5E7EB',
+                    badge: hasDocuments ? `${documents.length} subido${documents.length !== 1 ? 's' : ''}` : 'Pendiente',
+                    badgeBg: hasDocuments ? '#DBEAFE' : '#F3F4F6',
+                    badgeColor: hasDocuments ? '#1D4ED8' : '#9CA3AF',
+                  },
+                  {
+                    icon: '🤖',
+                    title: 'Analizar con IA',
+                    desc: 'Los agentes revisan y validan cada documento',
+                    active: hasAnalyses,
+                    color: hasAnalyses ? '#7C3AED' : '#9CA3AF',
+                    bg: hasAnalyses ? '#F5F3FF' : '#F9FAFB',
+                    border: hasAnalyses ? '#DDD6FE' : '#E5E7EB',
+                    badge: hasAnalyses ? `${analyses.length} análisis` : 'Pendiente',
+                    badgeBg: hasAnalyses ? '#EDE9FE' : '#F3F4F6',
+                    badgeColor: hasAnalyses ? '#6D28D9' : '#9CA3AF',
+                  },
+                  {
+                    icon: allApproved ? '✅' : anyRejected ? '❌' : '⏳',
+                    title: 'Aprobación',
+                    desc: 'Resultado final de la revisión documental',
+                    active: allApproved || anyRejected,
+                    color: allApproved ? '#16A34A' : anyRejected ? '#DC2626' : '#9CA3AF',
+                    bg: allApproved ? '#F0FDF4' : anyRejected ? '#FEF2F2' : '#F9FAFB',
+                    border: allApproved ? '#BBF7D0' : anyRejected ? '#FECACA' : '#E5E7EB',
+                    badge: allApproved ? 'Aprobado' : anyRejected ? 'Rechazado' : 'En espera',
+                    badgeBg: allApproved ? '#DCFCE7' : anyRejected ? '#FEE2E2' : '#F3F4F6',
+                    badgeColor: allApproved ? '#15803D' : anyRejected ? '#B91C1C' : '#9CA3AF',
+                  },
+                ];
+
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 24 }}>
+                    {stages.map((s, i) => (
+                      <React.Fragment key={s.title}>
+                        <div style={{ flex: 1, background: s.bg, border: `1.5px solid ${s.border}`, borderRadius: 12, padding: '14px 16px', transition: 'all .2s' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 8, background: s.active ? s.color : '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{s.icon}</div>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.title}</span>
+                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 700, background: s.badgeBg, color: s.badgeColor, padding: '2px 8px', borderRadius: 10 }}>{s.badge}</span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: 11, color: '#6B7280', lineHeight: 1.4 }}>{s.desc}</p>
+                        </div>
+                        {i < 2 && (
+                          <div style={{ display: 'flex', alignItems: 'center', padding: '0 6px', flexShrink: 0 }}>
+                            <div style={{ width: 20, height: 2, background: stages[i].active ? stages[i].color : '#E5E7EB' }} />
+                            <div style={{ width: 0, height: 0, borderTop: '5px solid transparent', borderBottom: '5px solid transparent', borderLeft: `6px solid ${stages[i].active ? stages[i].color : '#E5E7EB'}` }} />
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {/* Info banner */}
               <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#1E40AF', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
