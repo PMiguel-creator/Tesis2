@@ -25,7 +25,7 @@ export async function analyzeDocument(
   );
 
   const request = ai.models.generateContent({
-    model: "gemini-3-flash",
+    model: "gemini-3-flash-preview",
     contents: [
       {
         parts: [
