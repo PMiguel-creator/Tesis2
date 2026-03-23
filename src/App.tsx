@@ -453,7 +453,7 @@ export default function App() {
       // Enviar alerta si el análisis detecta un problema
       if (agent === 'review_result') {
         const texto = analysisResult.text.toUpperCase();
-        const necesitaAlerta = texto.includes('NO APROBADO') || texto.includes('VENCIDA');
+        const necesitaAlerta = texto.includes('NO APROBADO') || texto.includes('RECHAZADO') || texto.includes('VENCID') || texto.includes('VENCIDA') || texto.includes('VENCIDO');
         if (necesitaAlerta) {
           await sendAlertEmail(selectedDoc.name, analysisResult.text);
         }
@@ -1163,7 +1163,7 @@ export default function App() {
     if (reviewAnalysis) {
       const upper = reviewAnalysis.result.toUpperCase();
       if ((upper.includes('APROBADO') && !upper.includes('NO APROBADO')) || upper.includes('VIGENTE')) return 'approved';
-      if (upper.includes('NO APROBADO') || upper.includes('RECHAZADO') || upper.includes('VENCIDO') || upper.includes('VENCE')) return 'rejected';
+      if (upper.includes('NO APROBADO') || upper.includes('RECHAZADO') || upper.includes('VENCID') || upper.includes('VENCE')) return 'rejected';
       return 'reviewing';
     }
     if (docAnalyses.find(a => a.agentType === 'classify_doc')) return 'reviewing';
@@ -1561,7 +1561,7 @@ export default function App() {
                         {analyses.filter(a => a.documentId === selectedDoc.id).slice(-3).map(a => {
                           const upper = a.result.toUpperCase();
                           const isOk = upper.includes('APROBADO') && !upper.includes('NO APROBADO');
-                          const isWarn = upper.includes('VENCIDO') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO');
+                          const isWarn = upper.includes('VENCID') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO');
                           const bg = isOk ? '#F0FDF4' : isWarn ? '#FFFBEB' : '#EFF6FF';
                           const border = isOk ? '#BBF7D0' : isWarn ? '#FDE68A' : '#BFDBFE';
                           const color = isOk ? '#14532D' : isWarn ? '#92400E' : '#1E40AF';
@@ -1701,7 +1701,7 @@ export default function App() {
               {(() => {
                 const isAlert = (result: string) => {
                   const upper = (result || '').toUpperCase();
-                  return upper.includes('VENCIDO') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO');
+                  return upper.includes('VENCID') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO');
                 };
                 const alertAnalyses = analyses.filter(a => isAlert(a.result));
 
