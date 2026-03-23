@@ -1698,34 +1698,70 @@ export default function App() {
           {/* ── VISTA: ALERTAS ── */}
           {activeView === 'alerts' && (
             <div style={{ maxWidth: 700 }}>
-              <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
-                <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Centro de Alertas</h2>
-                {analyses.filter(a => {
+              {(() => {
+                const alertAnalyses = analyses.filter(a => {
                   const upper = a.result.toUpperCase();
                   return upper.includes('VENCIDO') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO');
-                }).length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '32px 0', color: '#9CA3AF', fontSize: 14 }}>
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-                    No hay alertas activas. Todos sus documentos están en orden.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {analyses
-                      .filter(a => { const upper = a.result.toUpperCase(); return upper.includes('VENCIDO') || upper.includes('NO APROBADO') || upper.includes('RECHAZADO'); })
-                      .map(a => {
-                        const doc = documents.find(d => d.id === a.documentId);
-                        return (
-                          <div key={a.id} style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: '#92400E', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                            <span>⚠️</span>
-                            <div>
-                              <strong>{doc?.name || 'Documento'}:</strong> {a.result.slice(0, 150)}{a.result.length > 150 ? '…' : ''}
-                            </div>
+                });
+                return (
+                  <>
+                    {/* Banner resumen correos */}
+                    {alertAnalyses.length > 0 && (
+                      <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 36, height: 36, background: '#2563EB', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>✉️</div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>
+                            {alertAnalyses.length} correo{alertAnalyses.length !== 1 ? 's' : ''} electrónico{alertAnalyses.length !== 1 ? 's' : ''} despachado{alertAnalyses.length !== 1 ? 's' : ''}
                           </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </div>
+                          <div style={{ fontSize: 11, color: '#3B82F6', marginTop: 2 }}>
+                            Notificaciones enviadas a <strong>{user.email}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lista de alertas */}
+                    <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: 22 }}>
+                      <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Centro de Alertas</h2>
+                      {alertAnalyses.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '32px 0', color: '#9CA3AF', fontSize: 14 }}>
+                          <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+                          No hay alertas activas. Todos sus documentos están en orden.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {alertAnalyses.map(a => {
+                            const doc = documents.find(d => d.id === a.documentId);
+                            const fechaAlerta = a.createdAt
+                              ? new Date(typeof a.createdAt === 'string' ? a.createdAt : a.createdAt?.toDate?.() || a.createdAt).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                              : '—';
+                            return (
+                              <div key={a.id} style={{ border: '1px solid #FDE68A', borderRadius: 8, overflow: 'hidden' }}>
+                                {/* Cabecera alerta */}
+                                <div style={{ background: '#FFFBEB', padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                  <span style={{ fontSize: 16 }}>⚠️</span>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E', marginBottom: 2 }}>{doc?.name || 'Documento'}</div>
+                                    <div style={{ fontSize: 12, color: '#B45309' }}>{a.result.slice(0, 150)}{a.result.length > 150 ? '…' : ''}</div>
+                                  </div>
+                                </div>
+                                {/* Footer correo despachado */}
+                                <div style={{ background: '#F0FDF4', borderTop: '1px solid #BBF7D0', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#15803D' }}>
+                                    <span>✉️</span>
+                                    <span>Correo despachado a <strong>{user.email}</strong></span>
+                                  </div>
+                                  <span style={{ fontSize: 10, color: '#6B7280' }}>{fechaAlerta}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 
