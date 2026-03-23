@@ -1276,7 +1276,6 @@ export default function App() {
             {/* Token usage por documento */}
             {(() => {
               const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
-              const totalTokens = analyses.reduce((sum, a) => sum + (a.usage?.totalTokenCount || 0), 0);
 
               // Agrupar tokens por documentId
               const tokensByDoc: Record<string, number> = {};
@@ -1285,15 +1284,11 @@ export default function App() {
                 tokensByDoc[a.documentId] += a.usage?.totalTokenCount || 0;
               });
 
-              // Calcular ancho de barra proporcional al máximo
               const maxTokens = Math.max(...Object.values(tokensByDoc), 1);
 
               return (
                 <div style={{ margin: '0 12px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tokens consumidos</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{fmt(totalTokens)}</div>
-                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Tokens por documento</div>
                   {documents.length === 0 ? (
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '4px 0' }}>Sin documentos aún</div>
                   ) : (
