@@ -1775,82 +1775,100 @@ export default function App() {
             const docsRevisando = documents.filter(d => getDocStatus(d) === 'reviewing').length;
             const docsAprobados = documents.filter(d => getDocStatus(d) === 'approved').length;
             const docsVencidos  = documents.filter(d => {
-              const st = getDocStatus(d);
-              const a  = analyses.find(a => a.documentId === d.id && a.agentType === 'review_result');
-              return st === 'rejected' && a && (a.result || '').toUpperCase().includes('VENCID');
+              const a = analyses.find(x => x.documentId === d.id && x.agentType === 'review_result');
+              return a && (a.result || '').toUpperCase().includes('VENCID');
             }).length;
+            const gradients = ['linear-gradient(135deg,#2563EB,#7C3AED)','linear-gradient(135deg,#059669,#065F46)','linear-gradient(135deg,#D97706,#B45309)','linear-gradient(135deg,#DC2626,#991B1B)'];
+            const grad = gradients[parseInt(contractorName.replace('Contratista ','')) % gradients.length];
+            const initials = contractorName.slice(0,2).toUpperCase();
             return (
               <div>
                 {/* Banner */}
                 <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '10px 16px', marginBottom: 20, fontSize: 13, color: '#1E40AF' }}>
-                  🏢 Mostrando documentos de sus contratistas asignados.
+                  🏢 Mostrando solo contratistas de <strong>{contractorName}</strong>.
                 </div>
-                {/* Stats */}
+                {/* 4 stat cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
                   {[
-                    { icon: '👷', label: 'Mis contratistas', val: documents.length > 0 ? 1 : 0, color: '#2563EB', bg: '#EFF6FF' },
-                    { icon: '📬', label: 'Docs por revisar',  val: docsRevisando,  color: '#D97706', bg: '#FFFBEB' },
-                    { icon: '✅', label: 'Aprobados',         val: docsAprobados,  color: '#16A34A', bg: '#F0FDF4' },
-                    { icon: '⚠️', label: 'Vencimientos',      val: docsVencidos,   color: '#DC2626', bg: '#FEF2F2' },
+                    { icon: '👷', label: 'Mis contratistas', val: documents.length > 0 ? 1 : 0, color: '#2563EB', borderColor: '#2563EB' },
+                    { icon: '📬', label: 'Docs por revisar',  val: docsRevisando,  color: '#1F2937', borderColor: '#D97706' },
+                    { icon: '✅', label: 'Aprobados',         val: docsAprobados,  color: '#1F2937', borderColor: '#16A34A' },
+                    { icon: '⚠️', label: 'Vencimientos',      val: docsVencidos,   color: '#1F2937', borderColor: '#DC2626' },
                   ].map(s => (
-                    <div key={s.label} style={{ background: s.bg, borderRadius: 10, border: '1px solid #E5E7EB', padding: '16px 18px' }}>
+                    <div key={s.label} style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', borderLeft: `4px solid ${s.borderColor}`, padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>{s.label}</span>
-                        <span style={{ fontSize: 18 }}>{s.icon}</span>
+                        <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{s.label}</span>
+                        <span style={{ fontSize: 22 }}>{s.icon}</span>
                       </div>
-                      <div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.val}</div>
+                      <div style={{ fontSize: 26, fontWeight: 800, color: s.color }}>{s.val}</div>
                     </div>
                   ))}
                 </div>
                 {/* Cola de revisión */}
-                <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB' }}>
-                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB' }}>
-                    <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Cola de Revisión</h2>
+                <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: grad, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{initials}</div>
+                    <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Cola de Revisión — {contractorName}</h2>
                   </div>
                   {documents.length === 0 ? (
                     <div style={{ padding: '40px 0', textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>No hay documentos en revisión.</div>
                   ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ background: '#F9FAFB' }}>
-                          {['Contratista', 'Documento', 'Fecha', 'Análisis IA', 'Estado', 'Acción'].map(h => (
-                            <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {documents.map(doc => {
-                          const status = getDocStatus(doc);
-                          const reviewA = analyses.find(a => a.documentId === doc.id && a.agentType === 'review_result');
-                          const classifyA = analyses.find(a => a.documentId === doc.id && a.agentType === 'classify_doc');
-                          const iaText = reviewA ? (reviewA.result || '').slice(0, 50) + ((reviewA.result || '').length > 50 ? '…' : '')
-                                       : classifyA ? 'Clasificado — pendiente revisión'
-                                       : 'Sin análisis';
-                          const fecha = (() => { try { const d = doc.createdAt?.toDate ? doc.createdAt.toDate() : new Date(doc.createdAt); return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }); } catch { return '—'; } })();
-                          const sc: Record<string, { bg: string; color: string; border: string; label: string }> = {
-                            approved:  { bg: '#F0FDF4', color: '#16A34A', border: '#BBF7D0', label: 'Aprobado' },
-                            rejected:  { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA', label: 'Rechazado' },
-                            reviewing: { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE', label: 'En revisión' },
-                            pending:   { bg: '#F9FAFB', color: '#9CA3AF', border: '#E5E7EB', label: 'Pendiente' },
-                          };
-                          const badge = sc[status] || sc.pending;
-                          return (
-                            <tr key={doc.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                              <td style={{ padding: '12px 14px', fontWeight: 600, color: '#374151' }}>{contractorName}</td>
-                              <td style={{ padding: '12px 14px', color: '#374151' }}>📄 {doc.name}</td>
-                              <td style={{ padding: '12px 14px', color: '#9CA3AF' }}>{fecha}</td>
-                              <td style={{ padding: '12px 14px', color: '#6B7280', maxWidth: 180 }}>{iaText}</td>
-                              <td style={{ padding: '12px 14px' }}>
-                                <span style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, padding: '2px 9px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{badge.label}</span>
-                              </td>
-                              <td style={{ padding: '12px 14px' }}>
-                                <button onClick={() => doc.storageUrl && window.open(doc.storageUrl, '_blank', 'noopener,noreferrer')} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ver</button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ background: '#F9FAFB' }}>
+                            {['Contratista','Documento','Fecha','Pre-análisis IA','Estado','Acciones'].map(h => (
+                              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {documents.map(doc => {
+                            const status = getDocStatus(doc);
+                            const reviewA = analyses.find(a => a.documentId === doc.id && a.agentType === 'review_result');
+                            const classifyA = analyses.find(a => a.documentId === doc.id && a.agentType === 'classify_doc');
+                            const iaResult = (reviewA?.result || classifyA?.result || '');
+                            const iaColor = iaResult.toUpperCase().includes('APROBADO') && !iaResult.toUpperCase().includes('NO APROBADO') ? '#16A34A'
+                                          : iaResult.toUpperCase().includes('NO APROBADO') || iaResult.toUpperCase().includes('VENCID') ? '#DC2626'
+                                          : '#D97706';
+                            const iaPrefix = iaResult.toUpperCase().includes('APROBADO') && !iaResult.toUpperCase().includes('NO APROBADO') ? '✓'
+                                           : iaResult.toUpperCase().includes('NO APROBADO') || iaResult.toUpperCase().includes('VENCID') ? '✗' : '⚠';
+                            const iaText = reviewA ? `${iaPrefix} ${iaResult.slice(0,40)}${iaResult.length > 40 ? '…' : ''}`
+                                         : classifyA ? `⚠ ${iaResult.slice(0,40)}${iaResult.length > 40 ? '…' : ''}`
+                                         : '— Sin análisis';
+                            const fecha = (() => { try { const d = doc.createdAt?.toDate ? doc.createdAt.toDate() : new Date(doc.createdAt); return d.toLocaleDateString('es-CL',{day:'2-digit',month:'short'}); } catch { return '—'; } })();
+                            const badges: Record<string,{bg:string;color:string;border:string;label:string}> = {
+                              approved:  {bg:'#F0FDF4',color:'#16A34A',border:'#BBF7D0',label:'Aprobado'},
+                              rejected:  {bg:'#FEF2F2',color:'#DC2626',border:'#FECACA',label:'Rechazado'},
+                              reviewing: {bg:'#EFF6FF',color:'#2563EB',border:'#BFDBFE',label:'Por revisar'},
+                              pending:   {bg:'#F9FAFB',color:'#9CA3AF',border:'#E5E7EB',label:'Pendiente'},
+                            };
+                            const b = badges[status] || badges.pending;
+                            return (
+                              <tr key={doc.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                                <td style={{ padding: '11px 14px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>{contractorName}</td>
+                                <td style={{ padding: '11px 14px', color: '#374151' }}>📄 {doc.name}</td>
+                                <td style={{ padding: '11px 14px', color: '#9CA3AF', whiteSpace: 'nowrap' }}>{fecha}</td>
+                                <td style={{ padding: '11px 14px', fontSize: 12, color: iaColor, maxWidth: 200 }}>{iaText}</td>
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                  <span style={{ background: b.bg, color: b.color, border: `1px solid ${b.border}`, padding: '2px 9px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{b.label}</span>
+                                </td>
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                  {status === 'rejected' ? (
+                                    <button onClick={() => doc.storageUrl && window.open(doc.storageUrl,'_blank','noopener,noreferrer')} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ver historial</button>
+                                  ) : (
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                      <button onClick={() => doc.storageUrl && window.open(doc.storageUrl,'_blank','noopener,noreferrer')} style={{ padding: '4px 10px', background: '#16A34A', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>✓ Aprobar</button>
+                                      <button style={{ padding: '4px 10px', background: '#DC2626', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>✗ Rechazar</button>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1859,22 +1877,28 @@ export default function App() {
 
           {/* ── VISTA: MIS CONTRATISTAS (mandante) ── */}
           {activeView === 'contractors' && (() => {
-            // Agrupar documentos por contratista (en demo: un solo contratista = usuario actual)
             const docsAprobados = documents.filter(d => getDocStatus(d) === 'approved').length;
             const total = documents.length;
             const pct = total > 0 ? Math.round((docsAprobados / total) * 100) : 0;
-            const initials = contractorName.replace('Contratista ', 'C');
-            const gradients = [
-              'linear-gradient(135deg,#2563EB,#7C3AED)',
-              'linear-gradient(135deg,#059669,#065F46)',
-              'linear-gradient(135deg,#D97706,#B45309)',
-              'linear-gradient(135deg,#DC2626,#991B1B)',
-            ];
-            const grad = gradients[parseInt(contractorName.replace('Contratista ', '')) % gradients.length];
+            const gradients = ['linear-gradient(135deg,#2563EB,#7C3AED)','linear-gradient(135deg,#059669,#065F46)','linear-gradient(135deg,#D97706,#B45309)','linear-gradient(135deg,#DC2626,#991B1B)'];
+            const grad = gradients[parseInt(contractorName.replace('Contratista ','')) % gradients.length];
+            const initials = contractorName.slice(0,2).toUpperCase();
+            const pctColor = pct >= 80 ? '#2563EB' : pct >= 60 ? '#D97706' : '#DC2626';
+            const badgeStatus = pct === 100 ? 'approved' : pct >= 60 ? 'reviewing' : 'rejected';
+            const badgeLabels: Record<string,string> = { approved: `${docsAprobados}/${total} docs`, reviewing: `${docsAprobados}/${total} docs`, rejected: `${docsAprobados}/${total} docs` };
+            const badgeColors: Record<string,{bg:string;color:string}> = {
+              approved:  {bg:'#DCFCE7',color:'#15803D'},
+              reviewing: {bg:'#DBEAFE',color:'#1D4ED8'},
+              rejected:  {bg:'#FEE2E2',color:'#B91C1C'},
+            };
+            const bc = badgeColors[badgeStatus];
             return (
-              <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB' }}>
+              <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Mis Contratistas</h2>
+                  <div>
+                    <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Mis Contratistas — {contractorName}</h2>
+                    <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0' }}>Contratistas asignados a su empresa</p>
+                  </div>
                   <button style={{ padding: '6px 14px', background: '#2563EB', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>+ Invitar</button>
                 </div>
                 <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 14 }}>
@@ -1884,45 +1908,20 @@ export default function App() {
                       No hay contratistas asignados aún.
                     </div>
                   ) : (
-                    <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 18 }}>
-                      {/* Header tarjeta */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: '50%', background: grad, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>{initials}</div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{contractorName}</div>
-                          <div style={{ fontSize: 11, color: '#9CA3AF' }}>{user.email}</div>
-                        </div>
+                    /* Tarjeta estilo prototipo: flex horizontal avatar | info | stats */
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', boxShadow: '0 1px 4px rgba(0,0,0,.06)', cursor: 'pointer' }}>
+                      {/* Avatar */}
+                      <div style={{ width: 44, height: 44, borderRadius: '50%', background: grad, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 16, flexShrink: 0 }}>{initials}</div>
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{contractorName}</h3>
+                        <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 6px' }}>{user.email}</p>
+                        <span style={{ background: bc.bg, color: bc.color, padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{badgeLabels[badgeStatus]}</span>
                       </div>
-                      {/* Stats inline */}
-                      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                        {[
-                          { label: 'Docs subidos', val: total, color: '#2563EB' },
-                          { label: 'Aprobados',    val: docsAprobados, color: '#16A34A' },
-                          { label: 'Análisis',     val: analyses.length, color: '#7C3AED' },
-                        ].map(s => (
-                          <div key={s.label} style={{ flex: 1, textAlign: 'center', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 7, padding: '8px 4px' }}>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.val}</div>
-                            <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 2 }}>{s.label}</div>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Barra de progreso */}
-                      <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 11, color: '#6B7280' }}>Documentos aprobados</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: pct === 100 ? '#16A34A' : '#D97706' }}>{pct}%</span>
-                      </div>
-                      <div style={{ height: 6, background: '#E5E7EB', borderRadius: 3 }}>
-                        <div style={{ height: 6, width: `${pct}%`, background: pct === 100 ? '#16A34A' : '#2563EB', borderRadius: 3, transition: 'width .4s ease' }} />
-                      </div>
-                      {/* Badge estado */}
-                      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                        <span style={{
-                          padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600,
-                          background: pct === 100 ? '#DCFCE7' : pct > 50 ? '#DBEAFE' : '#FEF3C7',
-                          color:      pct === 100 ? '#15803D' : pct > 50 ? '#1D4ED8' : '#D97706',
-                        }}>
-                          {pct === 100 ? '✅ Documentación completa' : pct > 50 ? '🔄 En progreso' : '⚠️ Requiere atención'}
-                        </span>
+                      {/* Stats cumplimiento */}
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: pctColor }}>{pct}%</div>
+                        <small style={{ fontSize: 11, color: '#9CA3AF' }}>cumplimiento</small>
                       </div>
                     </div>
                   )}
