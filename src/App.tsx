@@ -126,7 +126,12 @@ export default function App() {
   const [userRole, setUserRole] = useState<string>(() => {
     try { return localStorage.getItem('atlasops_role') || ''; } catch { return ''; }
   });
-  const [activeView, setActiveView] = useState<'upload' | 'docs' | 'alerts' | 'revision' | 'contractors'>('upload');
+  const [activeView, setActiveView] = useState<'upload' | 'docs' | 'alerts' | 'revision' | 'contractors'>(() => {
+    try {
+      const storedRole = localStorage.getItem('atlasops_role') || '';
+      return storedRole === 'mandante' ? 'revision' : 'upload';
+    } catch { return 'upload'; }
+  });
 
   // Guarda el rol cuando el usuario inicia sesión con un perfil seleccionado
   React.useEffect(() => {
