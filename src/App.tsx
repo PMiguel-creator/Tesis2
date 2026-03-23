@@ -1145,6 +1145,17 @@ export default function App() {
     );
   }
 
+  // Helper: genera un número de contratista consistente a partir del email
+  const getContractorNumber = (email: string): number => {
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) {
+      hash = ((hash << 5) - hash) + email.charCodeAt(i);
+      hash |= 0;
+    }
+    return (Math.abs(hash) % 999) + 1;
+  };
+  const contractorName = user?.email ? `Contratista ${getContractorNumber(user.email)}` : '';
+
   // Helper: estado visual de un documento según sus análisis
   const getDocStatus = (doc: DocumentData): 'approved' | 'rejected' | 'reviewing' | 'pending' => {
     const docAnalyses = analyses.filter(a => a.documentId === doc.id);
@@ -1245,6 +1256,14 @@ export default function App() {
               </div>
             </div>
 
+            {/* Nombre empresa contratista */}
+            {activeRole === 'contratista' && (
+              <div style={{ margin: '12px 12px 0', background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 8, padding: '10px 14px' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>Empresa</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#93C5FD' }}>{contractorName}</div>
+              </div>
+            )}
+
             {/* Nav */}
             <div style={{ padding: '16px 8px 8px' }}>
               <div style={{ padding: '0 12px 6px', color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -1337,7 +1356,12 @@ export default function App() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: isMobile ? 56 : 0 }}>
         {/* Topbar */}
         <div style={{ height: 58, background: '#fff', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', position: 'sticky', top: isMobile ? 56 : 0, zIndex: 10, flexShrink: 0 }}>
-          <h1 style={{ fontSize: 17, fontWeight: 700, color: '#1F2937', margin: 0 }}>{viewTitles[activeView] || 'Panel'}</h1>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <h1 style={{ fontSize: 17, fontWeight: 700, color: '#1F2937', margin: 0 }}>{viewTitles[activeView] || 'Panel'}</h1>
+            {activeRole === 'contratista' && (
+              <span style={{ fontSize: 11, color: '#2563EB', fontWeight: 600 }}>{contractorName}</span>
+            )}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {activeRole && (
               <span style={{
