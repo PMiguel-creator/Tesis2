@@ -1273,30 +1273,49 @@ export default function App() {
             {/* File input hidden */}
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf" />
 
-            {/* Token usage */}
+            {/* Token usage por documento */}
             {(() => {
-              const totalTokens = analyses.reduce((sum, a) => sum + (a.usage?.totalTokenCount || 0), 0);
-              const promptTokens = analyses.reduce((sum, a) => sum + (a.usage?.promptTokenCount || 0), 0);
-              const outputTokens = analyses.reduce((sum, a) => sum + (a.usage?.candidatesTokenCount || 0), 0);
               const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
+              const totalTokens = analyses.reduce((sum, a) => sum + (a.usage?.totalTokenCount || 0), 0);
+
+              // Agrupar tokens por documentId
+              const tokensByDoc: Record<string, number> = {};
+              analyses.forEach(a => {
+                if (!tokensByDoc[a.documentId]) tokensByDoc[a.documentId] = 0;
+                tokensByDoc[a.documentId] += a.usage?.totalTokenCount || 0;
+              });
+
+              // Calcular ancho de barra proporcional al máximo
+              const maxTokens = Math.max(...Object.values(tokensByDoc), 1);
+
               return (
                 <div style={{ margin: '0 12px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Tokens consumidos</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4 }}>{fmt(totalTokens)}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{fmt(promptTokens)}</div>
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>entrada</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{fmt(outputTokens)}</div>
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>salida</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{analyses.length}</div>
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>análisis</div>
-                    </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tokens consumidos</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{fmt(totalTokens)}</div>
                   </div>
+                  {documents.length === 0 ? (
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '4px 0' }}>Sin documentos aún</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      {documents.map(doc => {
+                        const tokens = tokensByDoc[doc.id] || 0;
+                        const pct = Math.round((tokens / maxTokens) * 100);
+                        const shortName = doc.name.length > 18 ? doc.name.slice(0, 16) + '…' : doc.name;
+                        return (
+                          <div key={doc.id}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortName}</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: tokens > 0 ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)', flexShrink: 0, marginLeft: 6 }}>{tokens > 0 ? fmt(tokens) : '—'}</span>
+                            </div>
+                            <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                              <div style={{ height: 3, width: `${pct}%`, background: tokens > 0 ? '#2563EB' : 'transparent', borderRadius: 2, transition: 'width .4s ease' }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })()}
