@@ -1859,14 +1859,21 @@ export default function App() {
                                   <span style={{ background: b.bg, color: b.color, border: `1px solid ${b.border}`, padding: '2px 9px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{b.label}</span>
                                 </td>
                                 <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                                  {status === 'rejected' ? (
-                                    <button onClick={() => doc.storageUrl && window.open(doc.storageUrl,'_blank','noopener,noreferrer')} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ver historial</button>
-                                  ) : (
-                                    <div style={{ display: 'flex', gap: 4 }}>
-                                      <button onClick={() => doc.storageUrl && window.open(doc.storageUrl,'_blank','noopener,noreferrer')} style={{ padding: '4px 10px', background: '#16A34A', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>✓ Aprobar</button>
-                                      <button style={{ padding: '4px 10px', background: '#DC2626', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>✗ Rechazar</button>
-                                    </div>
-                                  )}
+                                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                    <button
+                                      onClick={() => doc.storageUrl && window.open(doc.storageUrl, '_blank', 'noopener,noreferrer')}
+                                      disabled={!doc.storageUrl}
+                                      style={{ padding: '4px 10px', background: '#2563EB', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: doc.storageUrl ? 'pointer' : 'not-allowed', opacity: doc.storageUrl ? 1 : 0.45 }}
+                                    >📄 Ver PDF</button>
+                                    {status === 'rejected' ? (
+                                      <button style={{ padding: '4px 10px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ver historial</button>
+                                    ) : (
+                                      <>
+                                        <button style={{ padding: '4px 10px', background: '#16A34A', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>✓ Aprobar</button>
+                                        <button style={{ padding: '4px 10px', background: '#DC2626', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>✗ Rechazar</button>
+                                      </>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             );
